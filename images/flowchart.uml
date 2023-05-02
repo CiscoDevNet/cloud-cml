@@ -1,0 +1,29 @@
+@startuml flowchart
+start
+partition #LightCyan "Preparation" {
+if (already configured?) then (no)
+
+:* configure AWS
+** permissions
+** policies
+** S3 bucket
+* upload to S3 bucket 
+** software
+** reference platform images
+* create / install EC2 key pair
+* edit //config.yml//|
+else (yes)
+endif
+}
+partition #LightBlue "Using Terraform" {
+
+:create a CML instance;
+->
+repeat
+:run simulation(s);
+repeat while (Done?) is (no) not (yes)
+:remove license (del.sh)|
+:destroy the CML instance;
+}
+end
+@enduml

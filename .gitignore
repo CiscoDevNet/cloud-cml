@@ -1,0 +1,4 @@
+.envrc
+.terraform
+.terraform.lock.hcl
+terraform.tfstate*

@@ -1,0 +1,59 @@
+#
+# This file is part of Cisco Modeling Labs
+# Copyright (c) 2019-2023, Cisco Systems, Inc.
+# All rights reserved.
+#
+
+aws:
+  region: region-goes-here
+  bucket: bucket-name-goes-here
+  flavor: m5zn.metal
+  profile: permission-profile-goes-here
+  key_name: ssh-key-name-goes-here
+  disk_size: 64
+
+hostname: cml-controller
+
+app:
+  user: admin
+  pass: your-secret-password
+  # need to escape special chars:
+  # pass: '\"!@$%'
+  deb: cml2_2.5.1-10_amd64.deb
+  # list must have at least ONE element, this is what the dummy is for in case
+  # 00- and 01- are commented out!
+  customize:
+    # - 00-patch_vmx.sh
+    # - 01-patty.sh
+    - 99-dummy.sh
+
+sys:
+  user: sysadmin
+  pass: your-secret-password
+
+license:
+  flavor: CML_Enterprise
+  token: your-smart-licensing-token
+  # unless you have additional nodes, leave this at zero
+  nodes: 0
+
+# select the ones needed by un-/commenting them. The selected
+# reference platforms will be copied from the specified bucket
+# and must be available prior to starting an instance.
+refplat:
+  definitions:
+    - alpine
+    - server
+    - iosv
+    - iosvl2
+    # - csr1000v
+    # - asav
+    # - iosxrv
+  images:
+    - alpine-3-13-2-base
+    - iosv-159-3-m3
+    - iosvl2-2020
+    - server-tcl-11-1
+    # - csr1000v-17-03-06
+    # - asav-9-18-2
+    # - iosxrv-6-3-1
