@@ -1,10 +1,10 @@
-<h1>README</h1>
+# README
 
-Version 0.1.0, May 02 2023
+Version 0.1.1, May 17 2023
 
 This repository includes scripts, tooling and documentation to provision an instance of CML on Amazon Web Services (AWS).
 
-[TOC]
+> **IMPORTANT** The AWS CML deployment and the toolchain / code provided in this repository are **considered "experimental"**. If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
 
 ## General requirements
 
@@ -35,14 +35,14 @@ Some of the steps and procedures outlined below are preparation steps and only n
 
 Terraform can be downloaded for free from [here](https://developer.hashicorp.com/terraform/downloads). This site has also instructions how to install it on various supported platforms.
 
-Deployments of CML using Terraform were tested using version 1.4.5 on Ubuntu Linux.
+Deployments of CML using Terraform were tested using version 1.4.6 on Ubuntu Linux.
 
 ```plain
 $ terraform version
-Terraform v1.4.5
+Terraform v1.4.6
 on linux_amd64
-+ provider registry.terraform.io/ciscodevnet/cml2 v0.6.1
-+ provider registry.terraform.io/hashicorp/aws v4.64.0
++ provider registry.terraform.io/ciscodevnet/cml2 v0.6.2
++ provider registry.terraform.io/hashicorp/aws v4.67.0
 + provider registry.terraform.io/hashicorp/random v3.5.1
 $
 ```
@@ -73,6 +73,10 @@ $
 ```
 
 AWS CLI configurations are stored in `$HOME/.aws`.
+
+### Using a proxy
+
+If you need to use a proxy to access AWS then define it using environment variables. E.g. `export HTTPS_PROXY=http://my.proxy.corp:80/` when using bash.
 
 ## AWS requirements
 
@@ -274,7 +278,7 @@ Uploading the files into the S3 bucket is only required for the first time or wh
 
 #### Upload script
 
-The upload tool makes it easy to quickly select and upload images to a defined S3 bucket (the bucket must exist already).
+The upload tool makes it easy to quickly select and upload the software package and images to a defined S3 bucket (the bucket must exist already).
 
 Start the tool by providing the bucket name as an argument and the location of the reference platform images. The defaults for both are `aws-cml-images` for the bucket name and `/var/lib/libvirt/images` for the reference platform image location.
 
@@ -284,7 +288,7 @@ The tool will then display a simple dialog where the images which should be copi
 
 After selecting OK the upload process will be started immediately. To abort the process, Ctrl-C can be used.
 
-If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
+> **Note:** If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
 
 Help can be obtained via `./upload-images-to-aws.sh --help`.
 
@@ -297,11 +301,11 @@ Here's an example using a bash script that can be sourced and which defines thos
 Content of file `.envrc`:
 
 ```bash
-export TF_VAR_access_key="random-access-key-string-from-iam"
-export TF_VAR_secret_key="random-secret-key-string-from-iam"
+export TF_VAR_access_key="your-access-key-string-from-iam"
+export TF_VAR_secret_key="your-secret-key-string-from-iam"
 ```
 
-Alternatively, it's also possible to define variables via the provided `terraform.tfvars` file. Note that this file has all lines commented out. There are various ways how to define / set variables with Terraform. See the Terraform [documentation](https://developer.hashicorp.com/terraform/language/values/variables#assigning-values-to-root-module-variables) for additional details.
+Alternatively, it's also possible to provide values for variables via a file called `terraform.tfvars` file. There are various ways how to define / set variables with Terraform. See the Terraform [documentation](https://developer.hashicorp.com/terraform/language/values/variables#assigning-values-to-root-module-variables) for additional details.
 
 ## Lifecycle management
 
@@ -313,7 +317,7 @@ When all requirements are met, an instance can be deployed using Terraform.
 - [ ] policies and users configured in AWS IAM
 - [ ] software and reference platforms uploaded into a bucket on AWS S3
 - [ ] configuration files prepared with correct values
-- [ ] variables defined in environment  `terraform.tfvars`
+- [ ] variables defined in environment or in `terraform.tfvars`
 
 All configurations and variables relate to the relevant sections defined above.
 
@@ -492,6 +496,18 @@ $
 At this point, the compute resources have been released / destroyed. Note that the images in the S3 bucket are still available for bringing up new instances.
 
 > **Note:** Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
+
+## Troubleshooting
+
+In case of errors during deployment or when the CML instance won't become ready, the some troubleshooting guidance is provided below.
+
+- add a password to the root user in the `cml.sh` script within the `module-cml2-deply-aws/scripts` folder. Search for "troubleshooting", the line is commented out. Replace the "secret-password-here" with a proper password and uncomment the line by removing the leading hash character.
+- use the EC2 instance connect / serial console to gain access to the CML2 instance. When doing so soon after creating the instance, some log messages may already reveal what's going wrong
+- log in as the root user using the provided password on the serial console
+- check for errors in the log files in the `/var/log/cloud/` directory
+- check output of `cloud-init status`
+
+> **Note**: Not all instance flavors have a serial console but metal flavors do!
 
 ## Caveats and limitations
 

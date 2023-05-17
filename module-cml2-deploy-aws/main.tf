@@ -8,6 +8,10 @@ resource "random_id" "id" {
   byte_length = 4
 }
 
+provider "aws" {
+  region = var.region
+}
+
 locals {
   cfg       = yamldecode(var.cfg)
   cml       = templatefile("${path.module}/scripts/cml.sh", local.cfg)
