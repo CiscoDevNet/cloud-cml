@@ -1,6 +1,6 @@
 # README
 
-Version 0.1.1, May 17 2023
+Version 0.1.2, May 25 2023
 
 This repository includes scripts, tooling and documentation to provision an instance of CML on Amazon Web Services (AWS).
 
@@ -61,19 +61,6 @@ aws-cli/2.10.4 Python/3.9.11 Linux/5.19.0-40-generic exe/x86_64.ubuntu.22 prompt
 $
 ```
 
-To use the tool, it needs to be configured, using appropriate values:
-
-```plain
-$ aws configure
-AWS Access Key ID []: ********************
-AWS Secret Access Key []: ******************** 
-Default region name []: eu-central-1
-Default output format []: json
-$
-```
-
-AWS CLI configurations are stored in `$HOME/.aws`.
-
 ### Using a proxy
 
 If you need to use a proxy to access AWS then define it using environment variables. E.g. `export HTTPS_PROXY=http://my.proxy.corp:80/` when using bash.
@@ -86,7 +73,7 @@ This section describes the resources required by the provisioning scripts to suc
 
 A user is needed which can be used by Terraform to deploy the CML instance. This user needs to have certain permission policies assigned. Permission policies are created and assigned via IAM, either direct to the user or via a group assignment. The required policies are listed in the next sections.
 
-The below screenshot shows an example of such a user with the required permission policies highlighted.
+The below screen shot shows an example of such a user with the required permission policies highlighted where the name of the user is "cml_terraform".
 
 ![](images/permissions.png)
 
@@ -108,13 +95,13 @@ This "deployment" user needs to be able to pass the role defined in the previous
 }
 ```
 
-> **Note:** The account ID must be replaced with your specific account ID. The account ID can be copied from the AWS management console at the top right when clicking on the logged in user. The account ID is shown in the drop down with a "copy to clipboard" button.
+> **Note:** The account ID `ACCOUNTIDGOESHERE` in the policy JSON above must be replaced with your specific account ID. The account ID can be copied from the AWS management console at the top right when clicking on the logged in user. The account ID is shown in the drop down with a "copy to clipboard" button.
 
 #### EC2 Access
 
 The user needs permission to create, read, update and destroy EC2 instances. During internal testing, the predefined `AmazonEC2FullAccess` policy was permitted. This could likely be tightened further by removing unnecessary permissions.
 
-#### S3 Access
+#### S3 access policy
 
 A role needs to be defined in IAM which permits access to the S3 bucket that holds the required files, software and reference platform images. Here's the JSON of an example role which has the minimum permissions defined (in the above example, the name of this permission policy is 's3-cml-bucket'):
 
@@ -145,6 +132,16 @@ The `put`, `get` and `list` actions are required. Technically, the CML EC2 insta
 
 To upload images into the bucket using the AWS CLI, the `put` permission from the role defined above is required. If distinct users for S3 management tasks (uploading images) and for managing EC2 instances are used, then the S3 access permission is not required for the "deployment" user.
 
+#### Access role
+
+Finally, a role needs to be created which ties these elements together: The policy `s3-cml-bucket` from above is attached to this role. In this example, the name of the role that was created is `s3-access-for-ec2`. Within the role, the `s3-cml-bucket` permission policy is added. The name of this role is then referenced within the "pass role" permission added to the deployment user. Ensure that the name of the access role matches the name that is configured in the "pass role" permission policy of the deployment user.
+
+This 'access role' is then configured in the `config.yml` attribute 'aws.profile' (see below).
+
+The following diagram outlines the relation between the various IAM elements:
+
+![image](images/policies.png)
+
 ### Access credentials
 
 Within IAM, for the user created, an access key needs to be created. This access key and the associated secret key must be provided to the AWS Terraform provider via the the variables `access_key` and `secret_key`, ideally via environment variables or a vault. See the Variables section below.
@@ -173,13 +170,40 @@ Another alternative is to manage keys via the `aws_key_pair` Terraform resource.
 
 The instance type defines the "hardware" of the created CML instance. For full functionality on AWS, a "metal" flavor is required as only metal flavors allow the use of nested virtualization. Please refer to the [instance type explorer](https://aws.amazon.com/ec2/instance-explorer/?ec2-instances-cards.sort-by=item.additionalFields.category-order&ec2-instances-cards.sort-order=asc&awsf.ec2-instances-filter-category=*all&awsf.ec2-instances-filter-processors=*all&awsf.ec2-instances-filter-accelerators=*all&awsf.ec2-instances-filter-capabilities=additional-capabilities%23bare-metal-instances).
 
-Limited usability can be achieved by using compute optimized C5 instances [documentation](https://aws.amazon.com/ec2/instance-types/c5/). However, this is considered experimental and **not supported** as a lot of CML node types will not work when using on a non-metal flavor. This was tested using 'c5.2xlarge' instances and the following node types have been working OK:
+Limited usability can be achieved by using compute optimized C5 instances (link to the [documentation](https://aws.amazon.com/ec2/instance-types/c5/)). However, this is considered experimental and **not supported** as a lot of CML node types will not work when using on a non-metal flavor. This was tested using 'c5.2xlarge' instances and the following node types have been working OK:
 
 - External connector and unmanaged switch
 - All Linux node types
 - IOSv and IOSv-L2
 
 To enable this experimental "feature", the `00-patch_vmx.sh` script must be uncommented in the `app.customize` list of the configuration file. See below.
+
+### AWS CLI configuration
+
+Now that the deployment user has been defined, we can use the access credentials obtained in one of the previous steps to configure the AWS CLI tool. Ensure that you use the correct region and keys.
+
+```plain
+$ aws configure
+AWS Access Key ID []: ********************
+AWS Secret Access Key []: ********************
+Default region name []: us-east-1
+Default output format []: json
+$
+```
+
+AWS CLI configurations are stored in `$HOME/.aws`.
+
+If everything was configured correct then you should be able to list instances (remember that we permitted EC2 access for the deployment users):
+
+```
+$ aws ec2 describe-instances
+{
+    "Reservations": []
+}
+$
+```
+
+As there are no instances running in this case, the output is empty. The important thing here is that there's no error and the communication with AWS worked!
 
 ### Configuration file
 
@@ -192,7 +216,7 @@ This holds the various configurations for the EC2 instance and S3 bucket to be u
 - `aws.bucket`. This is the name of the bucket where the software and the reference platform files are stored. Must be accessible per the policy / role defined above
 - `aws.region`. This defines the region of the bucket and typically matches the region of the AWS CLI as configured above
 - `aws.flavor`. The flavor / instance type to be used for the AWS CML instance. Typically a metal instance
-- `aws.profile`. The name of the permission profile to be used for the instance. This needs to permit access to the S3 bucket with the software and reference platforms
+- `aws.profile`. The name of the permission profile to be used for the instance. This needs to permit access to the S3 bucket with the software and reference platforms. In the example given above, this was named "s3-access-for-ec2"
 - `aws.keyname`. SSH key name which needs to be installed on AWS EC2. This key will be injected into the instance using cloud-init.
 - `aws.disk_size`. The size of the disk in gigabytes. 64 is a good starting value but this truly depends on the kind of nodes and the planned instance lifetime.
 

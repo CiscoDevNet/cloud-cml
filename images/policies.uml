@@ -1,0 +1,109 @@
+@startuml
+
+<style>
+database {
+  BackGroundColor #lightgray
+  LineThickness 3
+  LineColor black
+}
+</style>
+
+' skinparam handwritten true
+' top to bottom direction
+skinparam arrowThickness 3
+left to right direction
+
+storage IAM as "AWS IAM" #lightblue;line:gray;text:lightblue {
+
+database Users #lightgray {
+    folder user as "deployment user" {
+        card permissions #lightcyan {
+            file ara [
+                allow role assignment
+                ....
+                inline policy
+            ]
+            file ec2a [
+                AmazonEC2FullAccess
+                ....
+                AWS managed policy
+            ]
+            file s3cml [
+                s3-cml-bucket
+                ....
+                customer managed policy,
+                references S3 access policy
+            ]
+        note right of s3cml
+            This permission is only needed when the
+            deployment user should also be used to
+            upload images into the S3 bucket e.g.
+            using the provided upload script and
+            or using the AWS CLI tool.
+            For production, this can be omitted.
+        end note
+        }
+        card groups {
+            file test1 [
+                group policies...
+                ....
+                (no specific use in this example)
+            ]
+        }
+        card tags {
+            file test2 [
+                tag definitions...
+                ....
+                (no specific use in this example)
+            ]
+        }
+        card sc as "security credentials" {
+            file test3 [
+                credentials / tokens ...
+                ....
+                Access key and secrets
+                for the deployment user
+                are managed here
+            ]
+        }
+        actor test [
+            cml_terraform
+        ]
+    }
+}
+
+
+
+sc -[hidden]right- test
+test1 -[hidden]- test2
+test2 -[hidden]- test3
+
+database Roles {
+    card s3_access_for_ec2 as "s3-access-for-ec2" {
+        file s3_cml_bucket2 [
+            s3-cml-bucket
+            ....
+            references S3 access polciy
+        ]
+    }
+}
+note right of s3_access_for_ec2
+    The name of this role
+    is used in ""config.yml""
+    as value for ""aws.profile""
+end note
+
+database Policies {
+    file s3cml2 [
+        s3-cml-bucket
+        ....
+        define access to S3 bucket objects
+    ]
+}
+
+
+ara =[#blue]down=> s3_access_for_ec2 : Allow ""iam:PassRole""
+s3cml =[#blue]> s3cml2
+s3cml2 <=[#blue]= s3_cml_bucket2
+
+@enduml
