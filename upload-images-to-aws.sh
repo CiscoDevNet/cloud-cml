@@ -32,6 +32,9 @@ For this to work, the dialog and the AWS CLI tool need to be installed.
 The AWS CLI tool must also be configured with a valid access and secret key
 (via 'aws configure').
 
+If a software .deb package is located in the current directory, then
+the tool can upload it to the bucket, too.
+
 defaults:
 - bucketname = $DEFAULT_BUCKET
 - directory = $ISO
@@ -76,7 +79,7 @@ function ctrlc() {
 
 trap ctrlc SIGINT
 
-cmlpkg=$(find ~/Downloads -name "$PKG" | sort | tail -1)
+cmlpkg=$(find . -name "$PKG" | sort | tail -1)
 if [ -n "$cmlpkg" ]; then
     echo $cmlpkg
     if ! dialog --title "Software PKG found, copy to Bucket?" \

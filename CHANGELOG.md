@@ -2,6 +2,16 @@
 
 Lists the changes for the tool releases.
 
+## Version 0.1.3
+
+- documentation update
+- make PATty installation script more robust
+- fix location for .pkg file in the `upload-images-to-aws.sh` script
+
+## Version 0.1.2
+
+Documentation update. Added a diagram for policy dependencies
+
 ## Version 0.1.1
 
 - depend on 0.6.2 of the CML Terraform provider

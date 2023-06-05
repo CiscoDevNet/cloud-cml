@@ -1,6 +1,6 @@
 # README
 
-Version 0.1.2, May 25 2023
+Version 0.1.3, June 5 2023
 
 This repository includes scripts, tooling and documentation to provision an instance of CML on Amazon Web Services (AWS).
 
@@ -95,7 +95,7 @@ This "deployment" user needs to be able to pass the role defined in the previous
 }
 ```
 
-> **Note:** The account ID `ACCOUNTIDGOESHERE` in the policy JSON above must be replaced with your specific account ID. The account ID can be copied from the AWS management console at the top right when clicking on the logged in user. The account ID is shown in the drop down with a "copy to clipboard" button.
+> **Note** The account ID `ACCOUNTIDGOESHERE` in the policy JSON above must be replaced with your specific account ID. The account ID can be copied from the AWS management console at the top right when clicking on the logged in user. The account ID is shown in the drop down with a "copy to clipboard" button.
 
 #### EC2 Access
 
@@ -103,7 +103,7 @@ The user needs permission to create, read, update and destroy EC2 instances. Dur
 
 #### S3 access policy
 
-A role needs to be defined in IAM which permits access to the S3 bucket that holds the required files, software and reference platform images. Here's the JSON of an example role which has the minimum permissions defined (in the above example, the name of this permission policy is 's3-cml-bucket'):
+A role needs to be defined in IAM which permits access to the S3 bucket that holds the required files, software and reference platform images. Here's the JSON of an example role which has the minimum permissions defined (in the above example for the 'cml_terraform' user, the name of this permission policy is 's3-cml-bucket'):
 
 ```json
 {
@@ -126,11 +126,11 @@ A role needs to be defined in IAM which permits access to the S3 bucket that hol
 }
 ```
 
-> **Note:** The `bucket-name` in the resource list above needs to reflect the actual bucket name in use. This role is used to allow access to the specified S3 resource for the EC2 instance that is launched.
+> **Note** The `bucket-name` in the resource list above needs to reflect the actual bucket name in use. This role is used to allow access to the specified S3 resource for the EC2 instance that is launched.
 
-The `put`, `get` and `list` actions are required. Technically, the CML EC2 instance itself only needs to read and list objects. So, if this particular role is only used for the EC2 instance and not for e.g. maintenance tasks, then the `put` permission can be removed.
+The `PutObject`, `GetObject` and `ListBucket` actions are required. Technically, the CML EC2 instance itself only needs to read and list objects. So, if this particular role is only used for the EC2 instance and not for e.g. maintenance tasks, then the `put` permission can be removed.
 
-To upload images into the bucket using the AWS CLI, the `put` permission from the role defined above is required. If distinct users for S3 management tasks (uploading images) and for managing EC2 instances are used, then the S3 access permission is not required for the "deployment" user.
+To upload images into the bucket using the AWS CLI, the `PutBucket` permission from the role defined above is required. If distinct users for S3 management tasks (uploading images) and for managing EC2 instances are used, then the S3 access permission is not required for the "deployment" user.
 
 #### Access role
 
@@ -142,7 +142,7 @@ The following diagram outlines the relation between the various IAM elements:
 
 ![image](images/policies.png)
 
-### Access credentials
+### Security credentials
 
 Within IAM, for the user created, an access key needs to be created. This access key and the associated secret key must be provided to the AWS Terraform provider via the the variables `access_key` and `secret_key`, ideally via environment variables or a vault. See the Variables section below.
 
@@ -214,13 +214,13 @@ CML specific settings are specified in the configuration file `config.yml`.
 This holds the various configurations for the EC2 instance and S3 bucket to be used. The bucket and region values are also required on the actual instance to be able to copy the software onto the instance.
 
 - `aws.bucket`. This is the name of the bucket where the software and the reference platform files are stored. Must be accessible per the policy / role defined above
-- `aws.region`. This defines the region of the bucket and typically matches the region of the AWS CLI as configured above
+- `aws.region`. This defines the region of the bucket and typically matches the region of the AWS CLI as configured above. It also defines the region where the EC2 instances are created
 - `aws.flavor`. The flavor / instance type to be used for the AWS CML instance. Typically a metal instance
 - `aws.profile`. The name of the permission profile to be used for the instance. This needs to permit access to the S3 bucket with the software and reference platforms. In the example given above, this was named "s3-access-for-ec2"
 - `aws.keyname`. SSH key name which needs to be installed on AWS EC2. This key will be injected into the instance using cloud-init.
 - `aws.disk_size`. The size of the disk in gigabytes. 64 is a good starting value but this truly depends on the kind of nodes and the planned instance lifetime.
 
-In theory, the EC2 instance can be run in a different region than the region of the bucket where the software is stored. In this case, the region defined here and the region of the Terrform AWS provider would be different.
+In theory, the EC2 instance can be run in a different region than the region of the bucket where the software is stored. The tooling, however, assumes that both are in the same region.
 
 #### Host name
 
@@ -268,7 +268,7 @@ Here, the reference platforms are listed which should be copied from the S3 buck
 
 It's mandatory that for each definition at least **one** matching image definition must be listed and that the name of these node and image definitions match with the names in the specified S3 bucket.
 
-> **Note:** The external connector and unmanaged switch are baked into the software, there's no need to have them listed here again.
+> **Note** The external connector and unmanaged switch are baked into the software, there's no need to have them listed here again.
 
 ### Required "layout" of the software bucket
 
@@ -296,7 +296,7 @@ $ aws s3 ls --recursive s3://aws-bucket-name/
 2023-03-02 14:38:09   23134208 refplat/virl-base-images/server-tcl-11-1/tcl-11-1.qcow2
 ```
 
-> **Note:** The Debian package is in the top folder of the bucket and the platform files are in the refplat folder. Within that folder, the structure is identical to the structure of the reference platform ISO image.
+> **Note** The Debian package is in the top folder of the bucket and the platform files are in the refplat folder. Within that folder, the structure is identical to the structure of the reference platform ISO image.
 
 Uploading the files into the S3 bucket is only required for the first time or when updating software. Even when CML instances are stopped / destroyed, the software in the S3 bucket is typically not removed.
 
@@ -312,7 +312,7 @@ The tool will then display a simple dialog where the images which should be copi
 
 After selecting OK the upload process will be started immediately. To abort the process, Ctrl-C can be used.
 
-> **Note:** If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
+> **Note** If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
 
 Help can be obtained via `./upload-images-to-aws.sh --help`.
 
@@ -464,7 +464,9 @@ sysadmin@rschmied-aws-2023042001:~$
 
 The system is running and the VIRL2 target (CML) is active!
 
-Prior to stopping the instance, the licensing token must be removed via the UI. Otherwise it's still considered "in use" in Smart Licensing. This is done via the UI or using the `del.sh` script / SSH command which is provided as part of the deploy output (see above). Then run the destroy command:
+Prior to stopping the instance, the licensing token must be removed via the UI. Otherwise it's still considered "in use" in Smart Licensing. This is done via the UI or using the `del.sh` script / SSH command which is provided as part of the deploy output (see above). Then run the destroy command.
+
+> **Note** The `del.sh` has no output if the command is successful.
 
 ```plain
 $ ssh -p1122 sysadmin@18.194.38.215 /provision/del.sh
@@ -517,9 +519,9 @@ Destroy complete! Resources: 3 destroyed.
 $
 ```
 
-At this point, the compute resources have been released / destroyed. Note that the images in the S3 bucket are still available for bringing up new instances.
+At this point, the compute resources have been released / destroyed. Images in the S3 bucket are still available for bringing up new instances.
 
-> **Note:** Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
+> **Note** Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
 
 ## Troubleshooting
 
@@ -531,7 +533,7 @@ In case of errors during deployment or when the CML instance won't become ready,
 - check for errors in the log files in the `/var/log/cloud/` directory
 - check output of `cloud-init status`
 
-> **Note**: Not all instance flavors have a serial console but metal flavors do!
+> **Note** Not all instance flavors have a serial console but metal flavors do!
 
 ## Caveats and limitations
 
@@ -560,5 +562,27 @@ CML cloud instances with the default networking have only one external IP addres
 For this reason, CML cloud instances by default only have the NAT network available. Ensure that all external connectors use the NAT (`virbr0`) network and not the bridge network (`bridge0`).
 
 In case of advanced VPC configuration with additional networks and NICs inside of the CML controller, bridging could be set up manually. This is out of scope for this documentation / tooling.
+
+### License removal
+
+If everything goes well (e.g. the license was successfully removed) then no additional output is shown when running the `ssh ... /provision/del.sh` command. Errors will be reported otherwise.
+
+The license can't be removed using the script when nodes are running. You will get this message:
+
+```json
+{
+  "description": "Licensing issue: Cannot de-register when nodes are running.",
+  "code": 400
+}
+```
+
+If the license has already been removed, then this message is shown:
+
+```json
+{
+  "description": "Licensing issue: The product has already been de-registered.",
+  "code": 400
+}
+```
 
 EOF
