@@ -1,6 +1,6 @@
 # README
 
-Version 0.1.4, August 10 2023
+Version 0.1.5, August 10 2023
 
 This repository includes scripts, tooling and documentation to provision an instance of CML on Amazon Web Services (AWS).
 
@@ -69,7 +69,7 @@ If you need to use a proxy to access AWS then define it using environment variab
 
 This section describes the resources required by the provisioning scripts to successfully deploy CML on AWS. These configurations and policies need to be created prior to using the tooling. This can be done on the AWS console or via the preferred deployment method (e.g. also via Terraform).
 
-> **Note** There's also a [video on YouTube](https://youtu.be/vzgUyO-GQio) which shows all the steps outlined below.
+> **Note:** There's also a [video on YouTube](https://youtu.be/vzgUyO-GQio) which shows all the steps outlined below.
 
 ### IAM user and group
 
@@ -109,7 +109,7 @@ To create the policy, go to "Policies", then click "Create policy". There select
 
 Replace "bucket-name" to the bucket name of your S3 bucket. This permits Read/Write and List access to the specified bucket and all objects within that bucket.
 
-> **Note** This could be further tightened by removing the "PutObject" action from the policy as the EC2 instance / the CML controller only needs read access ("GetObject") and not write access access ("PutObject"). However, to upload images into the bucket, the write access is required at least initially.
+> **Note:** This could be further tightened by removing the "PutObject" action from the policy as the EC2 instance / the CML controller only needs read access ("GetObject") and not write access access ("PutObject"). However, to upload images into the bucket, the write access is required at least initially.
 
 Click "Next" and provide a policy name, "cml-s3-access" for example. Finally, click "Create policy".
 
@@ -118,13 +118,23 @@ Click "Next" and provide a policy name, "cml-s3-access" for example. Finally, cl
 Now that we have the S3 access policy, we can create a role that uses this policy.
 
 1. go to "Roles"
+
 2. click "Create role"
+
 3. select "AWS service" for the "Trusted entity type" (the default)
+
 4. select "EC2" for the "Use case"
+
 5. click "Next"
+
 6. select the S3 access policy that was created in the previous section ("cml-s3-access") from the permission policy list
+
 7. scroll to the bottom and click "Next"
-8. provide a role name, use "s3-access-for-ec2" (this is important to note as this is the policy name that is also referenced in the Terraform configuration to deploy CML)
+
+8. provide a role name, use "s3-access-for-ec2" (this is important to note as this is the policy name that is also referenced in the Terraform configuration to deploy CML and in the inline role assignment). See [here](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance), search for `iam_instance_profile`, it says
+
+   > IAM Instance Profile to launch the instance with. Specified as the name of the Instance Profile. Ensure your credentials have the correct permission to assign the instance profile according to the [EC2 documentation](http://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html#roles-usingrole-ec2instance-permissions), notably `iam:PassRole`.
+
 9. click "Create role" at the bottom right
 
 ### Attach policies to user
@@ -167,7 +177,7 @@ To add these permission follow these steps:
 - in the "Resources" section click "Add arn"
 - in the dialog "Specify ARNs"
   - click "This account"
-  - in the last field, add the "cml-s3-access" policy to the end of the arn. It will look like "arn:aws:iam::111111111111111:role/cml-s3-access" (where the numbers represent your account ID, which is already inserted for you by the UI)
+  - in the last field, add the "s3-access-for-ec2" policy to the end of the arn. It will look like "arn:aws:iam::111111111111111:role/s3-access-for-ec2" (where the numbers represent your account ID, which is already inserted for you by the UI)
   - click "Add ARN"
 - click "Next"
 - provide a Policy name, "pass role" works
@@ -309,7 +319,7 @@ There are currently two scripts provided for CML instance customization.
 
 There's also a dummy entry in that list as the list must have at least one element. So, when not doing any of the predefined entries, at least the dummy must be present.
 
-> **Note** PATty is currently not available as a standalone .deb file. We will include it with 2.6.1 as part of the controller distribution (in addition to installing it).
+> **Note:** PATty is currently not available as a standalone .deb file. We will include it with 2.6.1 as part of the controller distribution (in addition to installing it).
 
 #### Sys section
 
@@ -335,7 +345,7 @@ Here, the reference platforms are listed which should be copied from the S3 buck
 
 It's mandatory that for each definition at least **one** matching image definition must be listed and that the name of these node and image definitions match with the names in the specified S3 bucket.
 
-> **Note** The external connector and unmanaged switch are baked into the software, there's no need to have them listed here again.
+> **Note:** The external connector and unmanaged switch are baked into the software, there's no need to have them listed here again.
 
 ### Required "layout" of the software bucket
 
@@ -363,7 +373,7 @@ $ aws s3 ls --recursive s3://aws-bucket-name/
 2023-03-02 14:38:09   23134208 refplat/virl-base-images/server-tcl-11-1/tcl-11-1.qcow2
 ```
 
-> **Note** The Debian package is in the top folder of the bucket and the platform files are in the refplat folder. Within that folder, the structure is identical to the structure of the reference platform ISO image.
+> **Note:** The Debian package is in the top folder of the bucket and the platform files are in the refplat folder. Within that folder, the structure is identical to the structure of the reference platform ISO image.
 
 Uploading the files into the S3 bucket is only required for the first time or when updating software. Even when CML instances are stopped / destroyed, the software in the S3 bucket is typically not removed.
 
@@ -371,7 +381,7 @@ Uploading the files into the S3 bucket is only required for the first time or wh
 
 The upload tool makes it easy to quickly select and upload the software package and images to a defined S3 bucket (the bucket must exist already).
 
-> **Note** The required CML software is the "pkg" file that is available for download from the Cisco software download page.  Example: `cml2_2.6.0-5_amd64-5.pkg`. Note the .pkg suffix.
+> **Note:** The required CML software is the "pkg" file that is available for download from the Cisco software download page.  Example: `cml2_2.6.0-5_amd64-5.pkg`. Also note the .pkg suffix.
 >
 > Placing the .pkg file into the directory with the upload tool will automatically extract the needed Debian package and offer the user to upload that package to the S3 bucket.
 
@@ -383,7 +393,7 @@ The tool will then display a simple dialog where the images which should be copi
 
 After selecting OK the upload process will be started immediately. To abort the process, Ctrl-C can be used.
 
-> **Note** If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
+> **Note:** If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
 
 Help can be obtained via `./upload-images-to-aws.sh --help`.
 
@@ -537,7 +547,7 @@ The system is running and the VIRL2 target (CML) is active!
 
 Prior to stopping the instance, the licensing token must be removed via the UI. Otherwise it's still considered "in use" in Smart Licensing. This is done via the UI or using the `del.sh` script / SSH command which is provided as part of the deploy output (see above). Then run the destroy command.
 
-> **Note** The `del.sh` has no output if the command is successful.
+> **Note:** The `del.sh` has no output if the command is successful.
 
 ```plain
 $ ssh -p1122 sysadmin@18.194.38.215 /provision/del.sh
@@ -592,7 +602,7 @@ $
 
 At this point, the compute resources have been released / destroyed. Images in the S3 bucket are still available for bringing up new instances.
 
-> **Note** Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
+> **Note:** Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
 
 ## Troubleshooting
 
@@ -604,7 +614,7 @@ In case of errors during deployment or when the CML instance won't become ready,
 - check for errors in the log files in the `/var/log/cloud/` directory
 - check output of `cloud-init status`
 
-> **Note** Not all instance flavors have a serial console but metal flavors do!
+> **Note:** Not all instance flavors have a serial console but metal flavors do!
 
 ## Caveats and limitations
 
