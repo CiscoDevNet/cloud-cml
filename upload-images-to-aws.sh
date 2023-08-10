@@ -32,7 +32,7 @@ For this to work, the dialog and the AWS CLI tool need to be installed.
 The AWS CLI tool must also be configured with a valid access and secret key
 (via 'aws configure').
 
-If a software .deb package is located in the current directory, then
+If a CML software .pkg package is located in the current directory, then
 the tool can upload it to the bucket, too.
 
 defaults:
@@ -94,6 +94,12 @@ pushd &>/dev/null virl-base-images
 options=$(find . -name '*.yaml' -exec sh -c 'basename '{}'; echo "on"' \; )
 popd &>/dev/null
 
+if [ -z "$options" ]; then
+    echo "there's apparently no images in the directory specified ($ISO)"
+    echo "please ensure that there's at least one image and node definition"
+    exit 255
+fi
+
 selection=$(dialog --stdout --no-items --separate-output --checklist \
     "Select images to copy to AWS bucket \"${BUCKETNAME}\"" 0 60 20 $options \
 )
@@ -101,7 +107,7 @@ s=$?
 clear
 if [ $s -eq 255 ]; then
     echo "reference platform image upload aborted..."
-    exit
+    exit 255
 fi
 
 declare -A nodedefs

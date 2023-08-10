@@ -1,6 +1,6 @@
 # README
 
-Version 0.1.3, June 5 2023
+Version 0.1.4, August 10 2023
 
 This repository includes scripts, tooling and documentation to provision an instance of CML on Amazon Web Services (AWS).
 
@@ -69,41 +69,22 @@ If you need to use a proxy to access AWS then define it using environment variab
 
 This section describes the resources required by the provisioning scripts to successfully deploy CML on AWS. These configurations and policies need to be created prior to using the tooling. This can be done on the AWS console or via the preferred deployment method (e.g. also via Terraform).
 
-### IAM User
+> **Note** There's also a [video on YouTube](https://youtu.be/vzgUyO-GQio) which shows all the steps outlined below.
 
-A user is needed which can be used by Terraform to deploy the CML instance. This user needs to have certain permission policies assigned. Permission policies are created and assigned via IAM, either direct to the user or via a group assignment. The required policies are listed in the next sections.
+### IAM user and group
 
-The below screen shot shows an example of such a user with the required permission policies highlighted where the name of the user is "cml_terraform".
+A user is needed which can be used by Terraform to deploy the CML instance. It is recommended to also create a group and attach the required policies to the group. A user is then created and assigned to this group in the final step below. This user inherits the policies from the group.
 
-![](images/permissions.png)
+- click "User groups"
+- click "Create group"
+- enter a name ("terraform")
+- click "Create group"
 
-#### Pass Role
+### S3 access / bucket policy
 
-This "deployment" user needs to be able to pass the role defined in the previous section to the EC2 instances it creates. The 'allow-role-assignment' policy is defined as follows:
+Next, we will create an S3 access policy which is reused to manage the bucket containing the reference platform as well as during CML deployment to allow copying the reference platform images to the EC2 instance.
 
-```json
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": "iam:PassRole",
-            "Resource": "arn:aws:iam::ACCOUNTIDGOESHERE:role/s3-access-for-ec2"
-        }
-    ]
-}
-```
-
-> **Note** The account ID `ACCOUNTIDGOESHERE` in the policy JSON above must be replaced with your specific account ID. The account ID can be copied from the AWS management console at the top right when clicking on the logged in user. The account ID is shown in the drop down with a "copy to clipboard" button.
-
-#### EC2 Access
-
-The user needs permission to create, read, update and destroy EC2 instances. During internal testing, the predefined `AmazonEC2FullAccess` policy was permitted. This could likely be tightened further by removing unnecessary permissions.
-
-#### S3 access policy
-
-A role needs to be defined in IAM which permits access to the S3 bucket that holds the required files, software and reference platform images. Here's the JSON of an example role which has the minimum permissions defined (in the above example for the 'cml_terraform' user, the name of this permission policy is 's3-cml-bucket'):
+To create the policy, go to "Policies", then click "Create policy". There select "JSON" instead of "Visual" at the top right and paste the following JSON:
 
 ```json
 {
@@ -126,31 +107,115 @@ A role needs to be defined in IAM which permits access to the S3 bucket that hol
 }
 ```
 
-> **Note** The `bucket-name` in the resource list above needs to reflect the actual bucket name in use. This role is used to allow access to the specified S3 resource for the EC2 instance that is launched.
+Replace "bucket-name" to the bucket name of your S3 bucket. This permits Read/Write and List access to the specified bucket and all objects within that bucket.
 
-The `PutObject`, `GetObject` and `ListBucket` actions are required. Technically, the CML EC2 instance itself only needs to read and list objects. So, if this particular role is only used for the EC2 instance and not for e.g. maintenance tasks, then the `put` permission can be removed.
+> **Note** This could be further tightened by removing the "PutObject" action from the policy as the EC2 instance / the CML controller only needs read access ("GetObject") and not write access access ("PutObject"). However, to upload images into the bucket, the write access is required at least initially.
 
-To upload images into the bucket using the AWS CLI, the `PutBucket` permission from the role defined above is required. If distinct users for S3 management tasks (uploading images) and for managing EC2 instances are used, then the S3 access permission is not required for the "deployment" user.
+Click "Next" and provide a policy name, "cml-s3-access" for example. Finally, click "Create policy".
 
-#### Access role
+### Create Role
 
-Finally, a role needs to be created which ties these elements together: The policy `s3-cml-bucket` from above is attached to this role. In this example, the name of the role that was created is `s3-access-for-ec2`. Within the role, the `s3-cml-bucket` permission policy is added. The name of this role is then referenced within the "pass role" permission added to the deployment user. Ensure that the name of the access role matches the name that is configured in the "pass role" permission policy of the deployment user.
+Now that we have the S3 access policy, we can create a role that uses this policy.
 
-This 'access role' is then configured in the `config.yml` attribute 'aws.profile' (see below).
+1. go to "Roles"
+2. click "Create role"
+3. select "AWS service" for the "Trusted entity type" (the default)
+4. select "EC2" for the "Use case"
+5. click "Next"
+6. select the S3 access policy that was created in the previous section ("cml-s3-access") from the permission policy list
+7. scroll to the bottom and click "Next"
+8. provide a role name, use "s3-access-for-ec2" (this is important to note as this is the policy name that is also referenced in the Terraform configuration to deploy CML)
+9. click "Create role" at the bottom right
+
+### Attach policies to user
+
+In the third step we attach permission policies to the group created in the step above. The policies in question are 
+
+- AmazonEC2FullAccess, a pre-defined policy that allows to control EC2 instances
+- cml-s3-access, the S3 access policies allowing users in this group to read/write/list objects in the bucket specified by the policy
+- the "pass role" policy which passes the permission allowing access to the S3 bucket to EC2 instances the users in this group create
+
+To add these permission follow these steps:
+
+#### EC2 policy
+
+- click on "Add permissions"
+- select "Add permissions" from the drop down
+- select "Attach policies directly"
+- search for "EC2Full" which will result in the "AmazonEC2FullAccess" policy
+- select this policy
+- click "Next"
+- click "Add permissions"
+
+#### S3 access policy
+
+- click on "Add permissions"
+- select "Add permissions" from the drop down
+- select "Attach policies directly"
+- select "Customer managed" in the "Filter by type" drop down
+- select the "cml-s3-access" customer managed policy (the one we created above)
+- click "Next"
+- click "Add permissions"
+
+#### Pass role policy
+
+- click on "Add permissions"
+- select "Create inline policy" from the drop down
+- click on "IAM" from the "Select a service" section
+- click on the "Write" Access level section
+- select the "PassRole" write action
+- in the "Resources" section click "Add arn"
+- in the dialog "Specify ARNs"
+  - click "This account"
+  - in the last field, add the "cml-s3-access" policy to the end of the arn. It will look like "arn:aws:iam::111111111111111:role/cml-s3-access" (where the numbers represent your account ID, which is already inserted for you by the UI)
+  - click "Add ARN"
+- click "Next"
+- provide a Policy name, "pass role" works
+- click "Create policy"
+
+#### Create user
+
+The final step is to create a user and associate it with the group
+
+- click on "Users"
+- click "Add users"
+- provide a user name
+- click "Next"
+- select "Add user to group" (the default)
+- select the group previously created ("terraform")
+- click "Next"
+- click "Create user"
+
+#### Create credentials
+
+The final step is about creating access credentials that can be used with Terraform. We need an access key and a secret key. 
+
+- click on "Users"
+- select the "cml_terraform" user
+- click on the "Security credentials" tab
+- scroll down to the "Access keys" section
+- click on "Create access key"
+- make a note of the access key and the secret key (copy them into an editor so that they can be later used when editing the `config.yml` of the deployment tool)
+
+This access key and the associated secret key must be provided to the AWS Terraform provider via the the variables `access_key` and `secret_key`, ideally via environment variables or a vault. See the Variables section below.
+
+#### Example
+
+The below screen shot shows an example of such a user with the required permission policies highlighted where the name of the user is "cml_terraform". Note that the required permission policies are listed. They are inherited from the "terraform" group. There's also an access key that has been created for this user.
+
+![image-20230810161432721](./images/permissions.png)
+
+This role that is passed ("s3-access-for-ec2") is then configured in the `config.yml` attribute 'aws.profile'.
+
+![image-20230810162352026](images/perm-details.png)
 
 The following diagram outlines the relation between the various IAM elements:
 
 ![image](images/policies.png)
 
-### Security credentials
-
-Within IAM, for the user created, an access key needs to be created. This access key and the associated secret key must be provided to the AWS Terraform provider via the the variables `access_key` and `secret_key`, ideally via environment variables or a vault. See the Variables section below.
-
-Generate an access key via IAM → Users → "username" → Security Credentials → Create access key
-
 ### Other resources
 
-In addition to the user policies set in the previous step, the following resources for a successful deployment are required.
+In addition to the user and group policies set in the previous steps, the following resources for a successful deployment are required.
 
 #### Key name
 
@@ -244,6 +309,8 @@ There are currently two scripts provided for CML instance customization.
 
 There's also a dummy entry in that list as the list must have at least one element. So, when not doing any of the predefined entries, at least the dummy must be present.
 
+> **Note** PATty is currently not available as a standalone .deb file. We will include it with 2.6.1 as part of the controller distribution (in addition to installing it).
+
 #### Sys section
 
 In this section, the OS user and password are defined.
@@ -303,6 +370,10 @@ Uploading the files into the S3 bucket is only required for the first time or wh
 #### Upload script
 
 The upload tool makes it easy to quickly select and upload the software package and images to a defined S3 bucket (the bucket must exist already).
+
+> **Note** The required CML software is the "pkg" file that is available for download from the Cisco software download page.  Example: `cml2_2.6.0-5_amd64-5.pkg`. Note the .pkg suffix.
+>
+> Placing the .pkg file into the directory with the upload tool will automatically extract the needed Debian package and offer the user to upload that package to the S3 bucket.
 
 Start the tool by providing the bucket name as an argument and the location of the reference platform images. The defaults for both are `aws-cml-images` for the bucket name and `/var/lib/libvirt/images` for the reference platform image location.
 

@@ -2,6 +2,17 @@
 
 Lists the changes for the tool releases.
 
+## Version 0.1.4
+
+- improved upload tool
+    - better error handling in case no images are available
+    - modified help text
+- completely reworked the AWS policy creation section to
+  provide step-by-step instructions to accurately describe the
+  policy creation process
+- added the current ref-plat images to the `config.yml` file
+- provided the current .pkg file name to the `config.yml` file
+
 ## Version 0.1.3
 
 - documentation update
