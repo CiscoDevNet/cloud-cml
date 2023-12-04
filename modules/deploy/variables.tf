@@ -4,18 +4,14 @@
 # All rights reserved.
 #
 
-# Common variables
-
-variable "cfg_file" {
-  type        = string
-  description = "Name of the YAML config file to use"
-  default     = "config.yml"
+variable "cfg" {
+  type        = any
+  description = "JSON configuration of the CML deployment"
 }
 
-variable "cfg_extra_vars" {
-  type        = string
-  description = "extra variable definitions, typically empty"
-  default     = null
+variable "extras" {
+  type        = any
+  description = "extra shell variable defininitions"
 }
 
 # AWS related vars
@@ -23,25 +19,26 @@ variable "cfg_extra_vars" {
 variable "aws_access_key" {
   type        = string
   description = "AWS access key / credential for the provisioning user"
-  default     = "notset"
+  default     = ""
 }
 
 variable "aws_secret_key" {
   type        = string
   description = "AWS secret key matching the access key"
-  default     = "notset"
+  default     = ""
 }
 
 # Azure related vars
 
-variable "subscription_id" {
+variable "azure_subscription_id" {
   type        = string
   description = "Azure subscription ID"
-  default     = "notset"
+  default     = ""
 }
 
-variable "tenant_id" {
+variable "azure_tenant_id" {
   type        = string
   description = "Azure tenant ID"
-  default     = "notset"
+  default     = ""
 }
+

@@ -2,28 +2,25 @@
 
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2023, Cisco Systems, Inc.
+# Copyright (c) 2019-2024, Cisco Systems, Inc.
 # All rights reserved.
 #
-
-# NOTE: vars with dollar curly brace are HCL template vars, getting replaced
-# by Terraform with actual values before the script is run!
-#
-# If a dollar curly brace is needed in the shell script itself, it needs to be
-# written as $${VARNAME} (two dollar signs)
 #
 # NOTE: this only works as long as the admin user password wasn't changed
-# from the value which was orginally provisioned.
+# from the value which was originally provisioned.
 
 # set -x
 # set -e
+
+
+source /provision/vars.sh
 
 
 function cml_remove_license() {
     API="http://ip6-localhost:8001/api/v0"
 
     # re-auth with new password
-    TOKEN=$(echo '{"username":"${app.user}","password":"${app.pass}"}' \ |
+    TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \ |
         curl -s -d@- $API/authenticate | jq -r)
 
     # de-register the license from the controller

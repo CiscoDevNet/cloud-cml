@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright (c) 2019-2023, Cisco Systems, Inc.
+# Copyright (c) 2019-2024, Cisco Systems, Inc.
 # All rights reserved.
 #
 # This script can be installed on an on-prem CML controller which also has the

@@ -1,27 +1,38 @@
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2023, Cisco Systems, Inc.
+# Copyright (c) 2019-2024, Cisco Systems, Inc.
 # All rights reserved.
 #
 
+# at this time, "aws" and "azure" are defined targets
+target: azure
+
 aws:
-  region: region-goes-here
+  region: us-east-1
   bucket: bucket-name-goes-here
+  # flavor: c5.2xlarge
   flavor: m5zn.metal
   profile: permission-profile-goes-here
-  key_name: ssh-key-name-goes-here
-  disk_size: 64
 
-hostname: cml-controller
+azure:
+  resource_group: resource-group-name
+  size: Standard_D4d_v4
+  storage_account: storage-account-name
+  container_name: container-name
+
+common:
+  disk_size: 64
+  hostname: cml-controller
+  key_name: ssh-key-name
 
 app:
   user: admin
   pass: your-secret-password
   # need to escape special chars:
   # pass: '\"!@$%'
-  deb: cml2_2.6.0-5_amd64.deb
-  # list must have at least ONE element, this is what the dummy is for in case
-  # 00- and 01- are commented out!
+  deb: cml2_2.6.1-11_amd64.deb
+  # The list must have at least ONE element, this is what the dummy is for in
+  # case 00- and 01- are commented out!
   customize:
     # - 00-patch_vmx.sh
     # - 01-patty.sh
@@ -34,40 +45,42 @@ sys:
 license:
   flavor: CML_Enterprise
   token: your-smart-licensing-token
-  # unless you have additional nodes, leave this at zero
+  # Unless you have additional node licenses available, leave this at zero
   nodes: 0
 
-# select the ones needed by un-/commenting them. The selected
-# reference platforms will be copied from the specified bucket
-# and must be available prior to starting an instance.
+# Select the reference platforms needed by un-/commenting them. The selected
+# reference platforms will be copied from the specified cloud storage and must
+# be available prior to starting an instance. Ensure that each definition has
+# also a corresponding image! A smaller selection: less copying, faster bring-up
+# time!
 refplat:
   definitions:
     - alpine
-    - alpine-trex
-    - alpine-wanem
-    - asav
-    - cat8000v
-    - cat9000v-s1
-    - csr1000v
-    - desktop
+    # - alpine-trex
+    # - alpine-wanem
+    # - asav
+    # - cat8000v
+    # - cat9000v-s1
+    # - csr1000v
+    # - desktop
     - iosv
     - iosvl2
-    - iosxrv9000
-    - nxosv9000
+    # - iosxrv9000
+    # - nxosv9000
     - server
     - ubuntu
   images:
     - alpine-3-16-2-base
-    - alpine-3-16-2-trex
-    - alpine-3-16-2-wanem
-    - asav-9-18-2
-    - cat8000v-17-09-01a
-    - cat9000v-s1-17.10.01prd7
-    - csr1000v-17-03-06
-    - desktop-3-16-2-xfce
+    # - alpine-3-16-2-trex
+    # - alpine-3-16-2-wanem
+    # - asav-9-18-2
+    # - cat8000v-17-09-01a
+    # - cat9000v-s1-17.10.01prd7
+    # - csr1000v-17-03-06
+    # - desktop-3-16-2-xfce
     - iosv-159-3-m6
     - iosvl2-2020
-    - iosxrv9000-7-7-1
-    - nxosv9300-10-3-1-f
+    # - iosxrv9000-7-7-1
+    # - nxosv9300-10-3-1-f
     - server-tcl-13-1
     - ubuntu-22-04-20221028

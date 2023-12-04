@@ -1,22 +1,20 @@
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2023, Cisco Systems, Inc.
+# Copyright (c) 2019-2024, Cisco Systems, Inc.
 # All rights reserved.
 #
 
 locals {
-  cfg_file = file("config.yml")
-  cfg      = yamldecode(local.cfg_file)
+  cfg    = yamldecode(file(var.cfg_file))
+  extras = var.cfg_extra_vars == null ? "" : (
+    fileexists(var.cfg_extra_vars) ? file(var.cfg_extra_vars) : var.cfg_extra_vars
+  )
 }
 
 module "deploy" {
-  source               = "./module-cml2-deploy-aws"
-  region               = local.cfg.aws.region
-  instance_type        = local.cfg.aws.flavor
-  key_name             = local.cfg.aws.key_name
-  iam_instance_profile = local.cfg.aws.profile
-  disk_size            = local.cfg.aws.disk_size
-  cfg                  = local.cfg_file
+  source = "./modules/deploy"
+  cfg    = local.cfg
+  extras = local.extras
 }
 
 provider "cml2" {
@@ -29,7 +27,7 @@ provider "cml2" {
 }
 
 module "ready" {
-  source = "./module-cml2-readyness"
+  source = "./modules/readyness"
   depends_on = [
     module.deploy.public_ip
   ]
