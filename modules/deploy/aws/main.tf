@@ -1,22 +1,32 @@
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2023, Cisco Systems, Inc.
+# Copyright (c) 2019-2024, Cisco Systems, Inc.
 # All rights reserved.
 #
 
-resource "random_id" "id" {
-  byte_length = 4
-}
-
-provider "aws" {
-  region = var.region
-}
-
 locals {
-  cfg       = yamldecode(var.cfg)
-  cml       = templatefile("${path.module}/scripts/cml.sh", local.cfg)
-  del       = templatefile("${path.module}/scripts/del.sh", local.cfg)
-  use_patty = length(regexall("patty\\.sh", join(" ", local.cfg.app.customize))) > 0
+  # Late binding required as the token is only known within the module.
+  # (Azure specific)
+  vars = templatefile("${path.module}/../data/vars.sh", {
+    cfg = merge(
+        var.options.cfg,
+        # Need to have this as it's referenced in the template.
+        # (Azure specific)
+        { sas_token = "undefined" }
+      )
+    }
+  )
+
+  user_data = templatefile("${path.module}/../data/userdata.txt", {
+    vars     = local.vars
+    cfg      = var.options.cfg
+    cml      = var.options.cml
+    copyfile = var.options.copyfile
+    del      = var.options.del
+    extras   = var.options.extras
+    path     = path.module
+  })
+
   cml_ingress = [
     {
       "description" : "allow SSH",
@@ -48,6 +58,19 @@ locals {
       "description" : "allow Cockpit",
       "from_port" : 9090,
       "to_port" : 9090
+      "protocol" : "tcp",
+      "cidr_blocks" : [
+        "0.0.0.0/0"
+      ],
+      "ipv6_cidr_blocks" : [],
+      "prefix_list_ids" : [],
+      "security_groups" : [],
+      "self" : false,
+    },
+    {
+      "description" : "allow HTTP",
+      "from_port" : 80,
+      "to_port" : 80
       "protocol" : "tcp",
       "cidr_blocks" : [
         "0.0.0.0/0"
@@ -102,7 +125,7 @@ locals {
 }
 
 resource "aws_security_group" "sg-tf" {
-  name        = "tf-sg-cml-${random_id.id.hex}"
+  name        = "tf-sg-cml-${var.options.rand_id}"
   description = "CML required ports inbound/outbound"
   egress = [
     {
@@ -119,24 +142,19 @@ resource "aws_security_group" "sg-tf" {
       "self" : false,
     }
   ]
-  ingress = local.use_patty ? concat(local.cml_ingress, local.cml_patty_range) : local.cml_ingress
+  ingress = var.options.use_patty ? concat(local.cml_ingress, local.cml_patty_range) : local.cml_ingress
 }
 
 resource "aws_instance" "cml" {
-  instance_type          = var.instance_type
+  instance_type          = var.options.cfg.aws.flavor
   ami                    = data.aws_ami.ubuntu.id
-  iam_instance_profile   = var.iam_instance_profile
-  key_name               = var.key_name
+  iam_instance_profile   = var.options.cfg.aws.profile
+  key_name               = var.options.cfg.common.key_name
   vpc_security_group_ids = [aws_security_group.sg-tf.id]
   root_block_device {
-    volume_size = var.disk_size
+    volume_size = var.options.cfg.common.disk_size
   }
-  user_data = templatefile("${path.module}/userdata.txt", {
-    cfg  = local.cfg
-    cml  = local.cml
-    del  = local.del
-    path = path.module
-  })
+  user_data = base64encode(local.user_data)
 }
 
 data "aws_ami" "ubuntu" {

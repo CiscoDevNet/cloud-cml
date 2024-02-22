@@ -2,11 +2,18 @@
 
 Lists the changes for the tool releases.
 
+## Version 0.2.0
+
+- added multi-cloud support
+- big re-factor to accommodate different cloud-targets
+- currently supported: AWS and Azure
+- updated documentation, split into different cloud providers
+
 ## Version 0.1.4
 
 - improved upload tool
-    - better error handling in case no images are available
-    - modified help text
+  - better error handling in case no images are available
+  - modified help text
 - completely reworked the AWS policy creation section to
   provide step-by-step instructions to accurately describe the
   policy creation process
