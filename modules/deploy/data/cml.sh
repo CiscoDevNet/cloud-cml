@@ -50,14 +50,14 @@ function base_setup() {
         elems=$(jq </provision/refplat -rc '.images|join(" ")')
         for item in $elems; do
             mkdir -p $VLLI/$IDEF/$item
-            copyfile refplat/$IDEF/$item/ $VLLI/$IDEF/ --recursive
+            copyfile refplat/$IDEF/$item/ $VLLI/$IDEF $item --recursive
         done
     fi
 
     # if there's no images at this point, copy what's available in the defined
     # cloud storage container
     if [ $(find $VLLI -type f | wc -l) -eq 0 ]; then
-        copyfile refplat/ $VLLI/ --recursive
+        copyfile refplat/ $VLLI/ "" --recursive
     fi
 
     systemctl stop ssh
@@ -179,7 +179,7 @@ function cml_configure() {
 
 
 function postprocess() {
-    FILELIST=$(find /provision/ -type f | egrep '[0-9]{2}-[[:alnum:]]+\.sh' | grep -v '99-dummy' | sort)
+    FILELIST=$(find /provision/ -type f | egrep '[0-9]{2}-[[:alnum:]_]+\.sh' | grep -v '99-dummy' | sort)
     if [ -n "$FILELIST" ]; then
         systemctl stop virl2.target
         while [ $(systemctl is-active virl2-controller.service) = active ]; do

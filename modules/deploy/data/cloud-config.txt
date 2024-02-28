@@ -1,0 +1,38 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+hostname: ${cfg.common.hostname}
+manage_etc_hosts: true
+
+packages:
+  - curl
+  - jq
+
+write_files:
+  - path: /provision/refplat
+    owner: root:root
+    permissions: "0644"
+    content: '${jsonencode(cfg.refplat)}'
+  - path: /provision/copyfile.sh
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, copyfile)}
+  - path: /provision/vars.sh
+    owner: root:root
+    permissions: "0600"
+    content: |
+      ${indent(6, format("%s\n%s", vars, extras))}
+  - path: /provision/del.sh
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, del)}
+  %{ for script in cfg.app.customize }
+  - path: /provision/${script}
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${indent(6, file("${path}/../data/${script}"))}
+  %{ endfor }

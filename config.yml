@@ -5,7 +5,8 @@
 #
 
 # at this time, "aws" and "azure" are defined targets
-target: azure
+# make sure that you ran the prepare.sh / prepare.bat script!
+target: aws
 
 aws:
   region: us-east-1

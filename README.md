@@ -1,10 +1,12 @@
 # README
 
-Version 0.2.0, February 22 2024
+Version 0.2.1, March 04 2024
 
 This repository includes scripts, tooling and documentation to provision an instance of Cisco Modeling Labs (CML) in various cloud services. Currently supported are Amazon Web Services (AWS) and Microsoft Azure.
 
 > **IMPORTANT** The CML deployment procedure and the tool chain / code provided in this repository are **considered "experimental"**. If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
+
+> **IMPORTANT** Read the section below about cloud provider selection (prepare script).
 
 ## General requirements
 
@@ -30,6 +32,17 @@ Some of the steps and procedures outlined below are preparation steps and only n
 - creating the storage resources and uploading images and software into it
 - creation of an SSH key pair and making the public key available to the cloud service
 - editing the `config.yml` configuration file including the selection of the cloud service, an instance flavor, region, license token and other parameters
+
+#### Important: Cloud provider selection
+
+The tooling supports multiple cloud providers (currently AWS and Azure).  Not everyone wants both providers.  It is mandatory to select and configure which provider to use.  This is a two step process:
+
+1. Run the `prepare.sh` script to modify and prepare the tool chain.  If on Windows, use `prepare.bat`.  You can actually choose to use both, if that's what you want.
+2. Configure the proper target ("aws" or "azure") in the configuration file
+
+The first step is unfortunately required, since it is impossible to dynamically select different cloud configurations within the same Terraform HCL configuration.  See [this SO link](https://stackoverflow.com/questions/70428374/how-to-make-the-provider-configuration-optional-and-based-on-the-condition-in-te) for more some context and details.
+
+The default "out-of-the-box" is AWS, so if you want to run on Azure, don't forget to run the prepare script.
 
 ### Terraform installation
 
