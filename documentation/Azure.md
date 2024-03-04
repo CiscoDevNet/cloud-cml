@@ -1,6 +1,6 @@
 # Azure
 
-Version 0.2.0, February 22 2024
+Version 0.2.1, February 22 2024
 
 This document explains specific configuration steps to deploy a Cisco Modeling Labs (CML) instance in Azure.
 

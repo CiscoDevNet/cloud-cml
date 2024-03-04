@@ -1,6 +1,6 @@
 # AWS
 
-Version 0.2.0, December 18 2023
+Version 0.2.1, December 18 2023
 
 This document contains specific configuration steps to deploy a CML instance in AWS. Some sections from the top level document are repeated here with additional detail regarding AWS.
 
@@ -211,15 +211,15 @@ This access key and the associated secret key must be provided to the AWS Terraf
 
 The below screen shot shows an example of such a user with the required permission policies highlighted where the name of the user is "cml_terraform". Note that the required permission policies are listed. They are inherited from the "terraform" group. There's also an access key that has been created for this user.
 
-![image-20230810161432721](./images/permissions.png)
+![image-20230810161432721](/images/permissions.png)
 
 This role that is passed ("s3-access-for-ec2") is then configured in the `config.yml` attribute 'aws.profile'.
 
-![image-20230810162352026](images/perm-details.png)
+![image-20230810162352026](/images/perm-details.png)
 
 The following diagram outlines the relation between the various IAM elements:
 
-![image](images/policies.png)
+![image](/images/policies.png)
 
 ### Other resources
 

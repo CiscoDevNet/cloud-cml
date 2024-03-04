@@ -14,10 +14,12 @@ locals {
     }
   )
 
-  user_data = templatefile("${path.module}/../data/userdata.txt", {
+  # Ensure there's no tabs in the template file! Also ensure that the list of
+  # reference platforms has no single quotes in the file names or keys (should
+  # be reasonable, but you never know...)
+  cloud_config = templatefile("${path.module}/../data/cloud-config.txt", {
     vars     = local.vars
     cfg      = var.options.cfg
-    cml      = var.options.cml
     copyfile = var.options.copyfile
     del      = var.options.del
     extras   = var.options.extras
@@ -218,10 +220,29 @@ resource "azurerm_linux_virtual_machine" "cml" {
     version   = "latest"
   }
 
-  custom_data = base64encode(local.user_data)
+  custom_data = data.cloudinit_config.azure_ud.rendered
 }
 
 data "azurerm_ssh_public_key" "cml" {
   name                = var.options.cfg.common.key_name
   resource_group_name = data.azurerm_resource_group.cml.name
+}
+
+data "cloudinit_config" "azure_ud" {
+  gzip          = true
+  base64_encode = true  # always true if gzip is true
+
+  part {
+    filename     = "userdata.txt"
+    content_type = "text/x-shellscript"
+
+    content = var.options.cml
+  }
+
+  part {
+    filename     = "cloud-config.yaml"
+    content_type = "text/cloud-config"
+
+    content = local.cloud_config
+  }
 }

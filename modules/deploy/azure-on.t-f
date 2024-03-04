@@ -6,10 +6,6 @@
 
 terraform {
   required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">=4.56.0"
-    }
     azurerm = {
       source  = "hashicorp/azurerm"
       version = ">=3.82.0"
@@ -17,3 +13,19 @@ terraform {
   }
   required_version = ">= 1.1.0"
 }
+
+provider "azurerm" {
+  features {}
+
+  subscription_id = var.azure_subscription_id
+  tenant_id       = var.azure_tenant_id
+
+  # Configuration options
+}
+
+module "azure" {
+  source  = "./azure"
+  count   = var.cfg.target == "azure" ? 1 : 0
+  options = local.options
+}
+

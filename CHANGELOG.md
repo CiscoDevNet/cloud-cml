@@ -2,6 +2,17 @@
 
 Lists the changes for the tool releases.
 
+## Version 0.2.1
+
+- allow to select provider using a script and split out TF providers
+- added prepare.sh / prepare.bat script for this purpose
+- initial state has AWS ON (config.yml example also is set to AWS)
+- fixed image paths for the AWS documentation
+- mentioned the necessary "prepare" step in the overall README.md
+- fix copying from cloud-storage to instance storage
+- address 16KB cloud-init limitation in AWS (not entirely removed but pushed
+  out farther)
+
 ## Version 0.2.0
 
 - added multi-cloud support

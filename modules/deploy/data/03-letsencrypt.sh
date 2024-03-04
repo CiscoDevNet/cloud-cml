@@ -19,6 +19,7 @@ source /provision/copyfile.sh
 
 # if there's no hostname then return immediately (these scripts are sourced)
 if [ -z "${CFG_HN}" ]; then
+    echo "no hostname configured, exiting"
     return
 fi
 
@@ -73,8 +74,8 @@ cp /etc/letsencrypt/live/$CFG_HN/privkey.pem /etc/nginx/privkey.pem
 
 # write the cert chain into the file that Cockpit uses
 cat /etc/letsencrypt/live/$CFG_HN/privkey.pem \
-	/etc/letsencrypt/live/$CFG_HN/fullchain.pem \
-	>/etc/cockpit/ws-certs.d/0-self-signed.cert
+    /etc/letsencrypt/live/$CFG_HN/fullchain.pem \
+    >/etc/cockpit/ws-certs.d/0-self-signed.cert
 
 # reload affected services
 systemctl reload nginx

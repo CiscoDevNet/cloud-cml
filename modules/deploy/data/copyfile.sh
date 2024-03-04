@@ -11,10 +11,14 @@ source /provision/vars.sh
 function copyfile() {
     SRC=$1
     DST=$2
-    RECURSIVE=$3
+    ITEM=$3
+    RECURSIVE=$4
     case $CFG_TARGET in
         aws)
-            aws s3 cp --no-progress $RECURSIVE "s3://$CFG_AWS_BUCKET/$SRC" $DST
+            if [ -n "$ITEM" ]; then
+                ITEM="/$ITEM"
+            fi
+            aws s3 cp --no-progress $RECURSIVE "s3://$CFG_AWS_BUCKET/$SRC" $DST$ITEM
             ;;
         azure)
             LOC="https://${CFG_AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/${CFG_AZURE_CONTAINER_NAME}"
