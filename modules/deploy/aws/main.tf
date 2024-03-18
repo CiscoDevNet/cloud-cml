@@ -134,16 +134,49 @@ resource "aws_security_group" "sg-tf" {
   ingress = var.options.use_patty ? concat(local.cml_ingress, local.cml_patty_range) : local.cml_ingress
 }
 
+resource "aws_security_group" "sg-tf-cluster-int" {
+  name        = "tf-sg-cml-cluster-int-${var.options.rand_id}"
+  description = "Allowing all IPv6 traffic on the cluster interface"
+  vpc_id = aws_vpc.main-vpc.id
+  egress = [
+    {
+      "description" : "any",
+      "from_port" : 0,
+      "to_port" : 0
+      "protocol" : "-1",
+      "cidr_blocks" : [],
+      "ipv6_cidr_blocks" : [ "::/0"],
+      "prefix_list_ids" : [],
+      "security_groups" : [],
+      "self" : false,
+    }
+  ]
+  ingress = [
+    {
+      "description" : "any",
+      "from_port" : 0,
+      "to_port" : 0
+      "protocol" : "-1",
+      "cidr_blocks" : [],
+      "ipv6_cidr_blocks" : [ "::/0"],
+      "prefix_list_ids" : [],
+      "security_groups" : [],
+      "self" : false,
+    }
+  ]
+}
+
 ### Non default VPC configuration
 #------------- VPC ----------------------------------------
 resource "aws_vpc" "main-vpc" {
   cidr_block = var.options.cfg.aws.public-vpc-ipv4-subnet
+  assign_generated_ipv6_cidr_block = true
   tags = {
     Name = "CML-vpc"
   }
 }
 
-#-------------Public Subnets, IGW and Routing----------------------------------------
+#-------------Public Subnet, IGW and Routing----------------------------------------
 resource "aws_internet_gateway" "public_igw" {
     vpc_id = aws_vpc.main-vpc.id
     tags = {"Name" = "CML-igw"}
@@ -180,6 +213,62 @@ resource "aws_eip" "server_eip" {
   tags = {"Name" = "CML-eip", "device" = "server"}
 }
 
+#-------------Cluster Subnet and interface----------------------------------------
+
+resource "aws_subnet" "cluster_subnet" {
+    availability_zone = var.options.cfg.aws.availability_zone
+    cidr_block = cidrsubnet(var.options.cfg.aws.public-vpc-ipv4-subnet, 8, 1)
+    ipv6_cidr_block = cidrsubnet(aws_vpc.main-vpc.ipv6_cidr_block, 8, 1) 
+    vpc_id = aws_vpc.main-vpc.id
+    tags = {"Name" = "CML-cluster"}
+}
+
+resource "aws_network_interface" "cluster_int_cml" {
+    subnet_id = aws_subnet.cluster_subnet.id
+    ipv6_address_count  = 1 
+    security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
+    tags = {Name = "CML-cluster-int"}
+}
+
+### IPv6 mcast support for CML clustering
+
+resource "aws_ec2_transit_gateway" "transit_gateway" {
+  description = "CML Transit Gateway"
+  multicast_support = "enable"
+  tags        = {
+    Name = "CML-tgw"
+  }
+}
+
+resource "aws_ec2_transit_gateway_multicast_domain" "cml_mcast_domain" {
+  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway.id
+  igmpv2_support = "enable"
+  tags = {
+    Name = "CML-mcast-domain"
+  }
+}
+
+resource "aws_ec2_transit_gateway_vpc_attachment" "vpc_attachment" {
+  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway.id
+  vpc_id             = aws_vpc.main-vpc.id
+  subnet_ids         = [aws_subnet.cluster_subnet.id] 
+  tags               = {
+    Name = "CML-tgw-vpc-attachment"
+  }
+}
+
+resource "aws_ec2_transit_gateway_multicast_domain_association" "cml_association" {
+  transit_gateway_attachment_id      = aws_ec2_transit_gateway_vpc_attachment.vpc_attachment.id
+  transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain.cml_mcast_domain.id
+  subnet_id                           = aws_subnet.cluster_subnet.id
+}
+
+resource "aws_ec2_transit_gateway_multicast_group_member" "cml_controller_int" {
+  group_ip_address                    = "ff02::fb"
+  network_interface_id                = aws_network_interface.cluster_int_cml.id
+  transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain_association.cml_association.transit_gateway_multicast_domain_id
+
+}
 
 resource "aws_instance" "cml" {
   instance_type          = var.options.cfg.aws.flavor
@@ -203,6 +292,10 @@ resource "aws_instance" "cml" {
   network_interface {
         network_interface_id = aws_network_interface.pub_int_cml.id
         device_index = 0
+  } 
+  network_interface {
+        network_interface_id = aws_network_interface.cluster_int_cml.id
+        device_index = 1
   } 
   user_data = data.cloudinit_config.aws_ud.rendered
 }
