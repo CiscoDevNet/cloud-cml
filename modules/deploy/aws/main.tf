@@ -189,7 +189,12 @@ resource "aws_instance" "cml" {
   tags                   = {Name = "CML-controller"}
   ebs_optimized          = "true"
   instance_market_options {
-    market_type = "spot"
+  market_type = "spot"
+  spot_options {
+      #max_price = 1.20
+      instance_interruption_behavior = "stop"
+      spot_instance_type = "persistent"
+    }
   }
   root_block_device {
     volume_size = var.options.cfg.common.disk_size
