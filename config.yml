@@ -10,10 +10,15 @@ target: aws
 
 aws:
   region: us-east-1
-  bucket: bucket-name-goes-here
-  # flavor: c5.2xlarge
-  flavor: m5zn.metal
-  profile: permission-profile-goes-here
+  availability_zone: us-east-1a
+  bucket: cml-s3-bucket
+  flavor: c5.2xlarge
+  # flavor: m5zn.metal
+  profile: s3-access-for-ec2
+  spot_instance: true
+  public-vpc-ipv4-subnet: 10.0.0.0/16
+  public-interface-ipv4-subnet: 10.0.0.0/24
+
 
 azure:
   resource_group: resource-group-name
@@ -24,11 +29,12 @@ azure:
 common:
   disk_size: 64
   hostname: cml-controller
-  key_name: ssh-key-name
+  key_name: ALTO
+  allowed_ipv4_subnets: ["173.36.0.0/16", "128.107.0.0/16", "173.38.220.0/24"]
 
 app:
   user: admin
-  pass: your-secret-password
+  pass: Krakow123
   # need to escape special chars:
   # pass: '\"!@$%'
   deb: cml2_2.6.1-11_amd64.deb
@@ -41,7 +47,7 @@ app:
 
 sys:
   user: sysadmin
-  pass: your-secret-password
+  pass: Krakow123
 
 license:
   flavor: CML_Enterprise
