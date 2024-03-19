@@ -301,9 +301,12 @@ resource "aws_instance" "cml" {
         network_interface_id = aws_network_interface.pub_int_cml.id
         device_index = 0
   } 
-  network_interface {
-        network_interface_id = var.options.cfg.common.create_cluster ? aws_network_interface.cluster_int_cml[0].id : null
-        device_index = 1
+  dynamic network_interface {
+        for_each = var.options.cfg.common.create_cluster ? [1] : []
+        content {
+           network_interface_id = aws_network_interface.cluster_int_cml[0].id
+           device_index = 1
+        }
   } 
   user_data = data.cloudinit_config.aws_ud.rendered
 }
