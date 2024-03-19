@@ -10,10 +10,14 @@ target: aws
 
 aws:
   region: us-east-1
+  availability_zone: us-east-1a
   bucket: bucket-name-goes-here
   # flavor: c5.2xlarge
   flavor: m5zn.metal
   profile: permission-profile-goes-here
+  use_spot_instances: true
+  public_vpc_ipv4_cidr: 10.0.0.0/16
+  public_interface_ipv4_subnet: 10.0.0.0/24
 
 azure:
   resource_group: resource-group-name
@@ -25,6 +29,9 @@ common:
   disk_size: 64
   hostname: cml-controller
   key_name: ssh-key-name
+  create_cluster: true
+  cluster_role: controller
+  allowed_ipv4_subnets: ["0.0.0.0/0"]
 
 app:
   user: admin

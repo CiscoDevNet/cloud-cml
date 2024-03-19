@@ -35,9 +35,7 @@ locals {
       "from_port" : 1122,
       "to_port" : 1122
       "protocol" : "tcp",
-      "cidr_blocks" : [
-        "0.0.0.0/0"
-      ],
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -48,9 +46,7 @@ locals {
       "from_port" : 22,
       "to_port" : 22
       "protocol" : "tcp",
-      "cidr_blocks" : [
-        "0.0.0.0/0"
-      ],
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -61,9 +57,7 @@ locals {
       "from_port" : 9090,
       "to_port" : 9090
       "protocol" : "tcp",
-      "cidr_blocks" : [
-        "0.0.0.0/0"
-      ],
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -74,9 +68,7 @@ locals {
       "from_port" : 80,
       "to_port" : 80
       "protocol" : "tcp",
-      "cidr_blocks" : [
-        "0.0.0.0/0"
-      ],
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -87,9 +79,7 @@ locals {
       "from_port" : 443,
       "to_port" : 443
       "protocol" : "tcp",
-      "cidr_blocks" : [
-        "0.0.0.0/0"
-      ],
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -102,9 +92,7 @@ locals {
       "from_port" : 2000,
       "to_port" : 7999
       "protocol" : "tcp",
-      "cidr_blocks" : [
-        "0.0.0.0/0"
-      ],
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -115,9 +103,7 @@ locals {
       "from_port" : 2000,
       "to_port" : 7999
       "protocol" : "udp",
-      "cidr_blocks" : [
-        "0.0.0.0/0"
-      ],
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -129,6 +115,7 @@ locals {
 resource "aws_security_group" "sg-tf" {
   name        = "tf-sg-cml-${var.options.rand_id}"
   description = "CML required ports inbound/outbound"
+  vpc_id = aws_vpc.main-vpc.id
   egress = [
     {
       "description" : "any",
@@ -147,15 +134,180 @@ resource "aws_security_group" "sg-tf" {
   ingress = var.options.use_patty ? concat(local.cml_ingress, local.cml_patty_range) : local.cml_ingress
 }
 
+resource "aws_security_group" "sg-tf-cluster-int" {
+  name        = "tf-sg-cml-cluster-int-${var.options.rand_id}"
+  description = "Allowing all IPv6 traffic on the cluster interface"
+  vpc_id = aws_vpc.main-vpc.id
+  egress = [
+    {
+      "description" : "any",
+      "from_port" : 0,
+      "to_port" : 0
+      "protocol" : "-1",
+      "cidr_blocks" : [],
+      "ipv6_cidr_blocks" : [ "::/0"],
+      "prefix_list_ids" : [],
+      "security_groups" : [],
+      "self" : false,
+    }
+  ]
+  ingress = [
+    {
+      "description" : "any",
+      "from_port" : 0,
+      "to_port" : 0
+      "protocol" : "-1",
+      "cidr_blocks" : [],
+      "ipv6_cidr_blocks" : [ "::/0"],
+      "prefix_list_ids" : [],
+      "security_groups" : [],
+      "self" : false,
+    }
+  ]
+}
+
+### Non default VPC configuration
+#------------- VPC ----------------------------------------
+resource "aws_vpc" "main-vpc" {
+  cidr_block = var.options.cfg.aws.cidr
+  assign_generated_ipv6_cidr_block = true
+  tags = {
+    Name = "CML-vpc-${var.options.rand_id}"
+  }
+}
+
+#-------------Public Subnet, IGW and Routing----------------------------------------
+resource "aws_internet_gateway" "public_igw" {
+    vpc_id = aws_vpc.main-vpc.id
+    tags = {"Name" = "CML-igw"}
+}
+resource "aws_subnet" "public_subnet" {
+    availability_zone = var.options.cfg.aws.availability_zone
+    cidr_block = var.options.cfg.aws.public_interface_ipv4_subnet
+    vpc_id = aws_vpc.main-vpc.id
+    map_public_ip_on_launch = true
+    tags = {"Name" = "CML-public-${var.options.rand_id}"}
+}
+resource "aws_route_table" "for_public_subnet" {
+    vpc_id = aws_vpc.main-vpc.id
+    route {
+        cidr_block = "0.0.0.0/0"
+        gateway_id = aws_internet_gateway.public_igw.id
+    }
+    tags = {"Name" = "CML-public-${var.options.rand_id}"}
+}
+  
+resource "aws_route_table_association" "public_subnet" {
+    subnet_id = aws_subnet.public_subnet.id
+    route_table_id = aws_route_table.for_public_subnet.id
+}
+
+resource "aws_network_interface" "pub_int_cml" {
+    subnet_id = aws_subnet.public_subnet.id
+    security_groups = [ aws_security_group.sg-tf.id ]
+    tags = {Name = "CML-pub-int-${var.options.rand_id}"}
+}
+
+resource "aws_eip" "server_eip" {
+  network_interface = aws_network_interface.pub_int_cml.id
+  tags = {"Name" = "CML-eip-${var.options.rand_id}", "device" = "server"}
+}
+
+#-------------Cluster Subnet and interface----------------------------------------
+
+resource "aws_subnet" "cluster_subnet" {
+    availability_zone = var.options.cfg.aws.availability_zone
+    cidr_block = cidrsubnet(var.options.cfg.aws.public-vpc-ipv4-subnet, 8, 1)
+    ipv6_cidr_block = cidrsubnet(aws_vpc.main-vpc.ipv6_cidr_block, 8, 1) 
+    vpc_id = aws_vpc.main-vpc.id
+    tags = {"Name" = "CML-cluster-${var.options.rand_id}"}
+    count = var.options.cfg.common.create_cluster ? 1 : 0 
+}
+
+resource "aws_network_interface" "cluster_int_cml" {
+    subnet_id = aws_subnet.cluster_subnet[count.index].id
+    ipv6_address_count  = 1 
+    security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
+    tags = {Name = "CML-cluster-int-${var.options.rand_id}"}
+    count = var.options.cfg.common.create_cluster ? 1 : 0 
+}
+
+### IPv6 mcast support for CML clustering
+
+resource "aws_ec2_transit_gateway" "transit_gateway" {
+  description = "CML Transit Gateway"
+  multicast_support = "enable"
+  tags        = {
+    Name = "CML-tgw-${var.options.rand_id}"
+  }
+  count = var.options.cfg.common.create_cluster ? 1 : 0 
+}
+
+resource "aws_ec2_transit_gateway_multicast_domain" "cml_mcast_domain" {
+  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[count.index].id
+  igmpv2_support = "enable"
+  tags = {
+    Name = "CML-mcast-domain-${var.options.rand_id}"
+  }
+  count = var.options.cfg.common.create_cluster ? 1 : 0 
+}
+
+resource "aws_ec2_transit_gateway_vpc_attachment" "vpc_attachment" {
+  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[count.index].id
+  vpc_id             = aws_vpc.main-vpc.id
+  subnet_ids         = [aws_subnet.cluster_subnet[count.index].id] 
+  tags               = {
+    Name = "CML-tgw-vpc-attachment-${var.options.rand_id}"
+  }
+  count = var.options.cfg.common.create_cluster ? 1 : 0 
+}
+
+resource "aws_ec2_transit_gateway_multicast_domain_association" "cml_association" {
+  transit_gateway_attachment_id      = aws_ec2_transit_gateway_vpc_attachment.vpc_attachment[count.index].id
+  transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain.cml_mcast_domain[count.index].id
+  subnet_id                           = aws_subnet.cluster_subnet[count.index].id
+  count = var.options.cfg.common.create_cluster ? 1 : 0 
+}
+
+resource "aws_ec2_transit_gateway_multicast_group_member" "cml_controller_int" {
+  group_ip_address                    = "ff02::fb"
+  network_interface_id                = aws_network_interface.cluster_int_cml[count.index].id
+  transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain_association.cml_association[count.index].transit_gateway_multicast_domain_id
+  count = var.options.cfg.common.create_cluster ? 1 : 0 
+}
+
 resource "aws_instance" "cml" {
   instance_type          = var.options.cfg.aws.flavor
   ami                    = data.aws_ami.ubuntu.id
   iam_instance_profile   = var.options.cfg.aws.profile
   key_name               = var.options.cfg.common.key_name
-  vpc_security_group_ids = [aws_security_group.sg-tf.id]
+  tags                   = {Name = "CML-controller-${var.options.rand_id}"}
+  ebs_optimized          = "true"
+  dynamic instance_market_options {
+        for_each = var.options.cfg.aws.use_spot_instances ? [1] : [] 
+        content {  
+          market_type = "spot"
+          spot_options {
+              instance_interruption_behavior = "stop"
+              spot_instance_type = "persistent"
+            }
+          }
+  }
   root_block_device {
     volume_size = var.options.cfg.common.disk_size
+    volume_type = "gp3"
   }
+  network_interface {
+        network_interface_id = aws_network_interface.pub_int_cml.id
+        device_index = 0
+  } 
+  dynamic network_interface {
+        for_each = var.options.cfg.common.create_cluster ? [1] : []
+        content {
+           network_interface_id = aws_network_interface.cluster_int_cml[0].id
+           device_index = 1
+        }
+  } 
   user_data = data.cloudinit_config.aws_ud.rendered
 }
 
