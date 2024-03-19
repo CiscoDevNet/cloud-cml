@@ -15,7 +15,7 @@ aws:
   flavor: c5.2xlarge
   # flavor: m5zn.metal
   profile: s3-access-for-ec2
-  spot_instance: true
+  use_spot_instances: true
   public-vpc-ipv4-subnet: 10.0.0.0/16
   public-interface-ipv4-subnet: 10.0.0.0/24
 
@@ -30,6 +30,8 @@ common:
   disk_size: 64
   hostname: cml-controller
   key_name: ALTO
+  create_cluster: false
+  cluster_role: controller
   allowed_ipv4_subnets: ["173.36.0.0/16", "128.107.0.0/16", "173.38.220.0/24"]
 
 app:
