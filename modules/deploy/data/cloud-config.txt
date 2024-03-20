@@ -29,6 +29,11 @@ write_files:
     permissions: "0700"
     content: |
       ${indent(6, del)}
+  - path: /etc/virl2-base-config.yml
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${indent(6, file("${path}/../data/virl2-base-config.yml"))}
   %{ for script in cfg.app.customize }
   - path: /provision/${script}
     owner: root:root

@@ -115,6 +115,9 @@ locals {
 resource "aws_security_group" "sg-tf" {
   name        = "tf-sg-cml-${var.options.rand_id}"
   description = "CML required ports inbound/outbound"
+  tags = {
+    Name = "tf-sg-cml-${var.options.rand_id}"
+  }
   vpc_id = aws_vpc.main-vpc.id
   egress = [
     {
@@ -137,6 +140,9 @@ resource "aws_security_group" "sg-tf" {
 resource "aws_security_group" "sg-tf-cluster-int" {
   name        = "tf-sg-cml-cluster-int-${var.options.rand_id}"
   description = "Allowing all IPv6 traffic on the cluster interface"
+  tags = {
+    Name = "tf-sg-cml-cluster-int-${var.options.rand_id}"
+  }
   vpc_id = aws_vpc.main-vpc.id
   egress = [
     {
@@ -169,7 +175,7 @@ resource "aws_security_group" "sg-tf-cluster-int" {
 ### Non default VPC configuration
 #------------- VPC ----------------------------------------
 resource "aws_vpc" "main-vpc" {
-  cidr_block = var.options.cfg.aws.cidr
+  cidr_block = var.options.cfg.aws.public_vpc_ipv4_cidr
   assign_generated_ipv6_cidr_block = true
   tags = {
     Name = "CML-vpc-${var.options.rand_id}"
@@ -179,11 +185,11 @@ resource "aws_vpc" "main-vpc" {
 #-------------Public Subnet, IGW and Routing----------------------------------------
 resource "aws_internet_gateway" "public_igw" {
     vpc_id = aws_vpc.main-vpc.id
-    tags = {"Name" = "CML-igw"}
+    tags = {"Name" = "CML-igw-${var.options.rand_id}"}
 }
 resource "aws_subnet" "public_subnet" {
     availability_zone = var.options.cfg.aws.availability_zone
-    cidr_block = var.options.cfg.aws.public_interface_ipv4_subnet
+    cidr_block = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 0)
     vpc_id = aws_vpc.main-vpc.id
     map_public_ip_on_launch = true
     tags = {"Name" = "CML-public-${var.options.rand_id}"}
@@ -217,11 +223,11 @@ resource "aws_eip" "server_eip" {
 
 resource "aws_subnet" "cluster_subnet" {
     availability_zone = var.options.cfg.aws.availability_zone
-    cidr_block = cidrsubnet(var.options.cfg.aws.public-vpc-ipv4-subnet, 8, 1)
+    cidr_block = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 1)
     ipv6_cidr_block = cidrsubnet(aws_vpc.main-vpc.ipv6_cidr_block, 8, 1) 
     vpc_id = aws_vpc.main-vpc.id
     tags = {"Name" = "CML-cluster-${var.options.rand_id}"}
-    count = var.options.cfg.common.create_cluster ? 1 : 0 
+    count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
 }
 
 resource "aws_network_interface" "cluster_int_cml" {
@@ -229,7 +235,7 @@ resource "aws_network_interface" "cluster_int_cml" {
     ipv6_address_count  = 1 
     security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
     tags = {Name = "CML-cluster-int-${var.options.rand_id}"}
-    count = var.options.cfg.common.create_cluster ? 1 : 0 
+    count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
 }
 
 ### IPv6 mcast support for CML clustering
@@ -240,7 +246,7 @@ resource "aws_ec2_transit_gateway" "transit_gateway" {
   tags        = {
     Name = "CML-tgw-${var.options.rand_id}"
   }
-  count = var.options.cfg.common.create_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
 }
 
 resource "aws_ec2_transit_gateway_multicast_domain" "cml_mcast_domain" {
@@ -249,7 +255,7 @@ resource "aws_ec2_transit_gateway_multicast_domain" "cml_mcast_domain" {
   tags = {
     Name = "CML-mcast-domain-${var.options.rand_id}"
   }
-  count = var.options.cfg.common.create_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
 }
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "vpc_attachment" {
@@ -259,21 +265,21 @@ resource "aws_ec2_transit_gateway_vpc_attachment" "vpc_attachment" {
   tags               = {
     Name = "CML-tgw-vpc-attachment-${var.options.rand_id}"
   }
-  count = var.options.cfg.common.create_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
 }
 
 resource "aws_ec2_transit_gateway_multicast_domain_association" "cml_association" {
   transit_gateway_attachment_id      = aws_ec2_transit_gateway_vpc_attachment.vpc_attachment[count.index].id
   transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain.cml_mcast_domain[count.index].id
   subnet_id                           = aws_subnet.cluster_subnet[count.index].id
-  count = var.options.cfg.common.create_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
 }
 
 resource "aws_ec2_transit_gateway_multicast_group_member" "cml_controller_int" {
   group_ip_address                    = "ff02::fb"
   network_interface_id                = aws_network_interface.cluster_int_cml[count.index].id
   transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain_association.cml_association[count.index].transit_gateway_multicast_domain_id
-  count = var.options.cfg.common.create_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
 }
 
 resource "aws_instance" "cml" {
@@ -283,6 +289,7 @@ resource "aws_instance" "cml" {
   key_name               = var.options.cfg.common.key_name
   tags                   = {Name = "CML-controller-${var.options.rand_id}"}
   ebs_optimized          = "true"
+  count                  = 1
   dynamic instance_market_options {
         for_each = var.options.cfg.aws.use_spot_instances ? [1] : [] 
         content {  
@@ -302,7 +309,7 @@ resource "aws_instance" "cml" {
         device_index = 0
   } 
   dynamic network_interface {
-        for_each = var.options.cfg.common.create_cluster ? [1] : []
+        for_each = var.options.cfg.cluster.enable_cluster ? [1] : []
         content {
            network_interface_id = aws_network_interface.cluster_int_cml[0].id
            device_index = 1

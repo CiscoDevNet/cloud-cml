@@ -1,0 +1,20 @@
+admins:
+  controller:
+    password: 'your-secret-password'
+    username: admin
+  system:
+    password: 'your-secret-password'
+    username: sysadmin
+cluster_interface: ens6
+compute_secret: your-secret-password
+controller_name: cml-controller
+copy_iso_to_disk: false
+hostname: cml-controller
+interactive: false
+is_cluster: true
+is_compute: false
+is_configured: false
+is_controller: true
+primary_interface: ens5
+ssh_server: true
+use_ipv4_dhcp: true

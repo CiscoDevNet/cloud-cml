@@ -62,6 +62,18 @@ function base_setup() {
 
     systemctl stop ssh
     apt-get install -y /provision/${CFG_APP_DEB}
+    # fix for the NM on AWS
+    echo "    renderer: NetworkManager" >> /etc/netplan/50-cloud-init.yaml
+    sed -i 's/^unmanaged-devices=.*/unmanaged-devices=none/' /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
+    service network-manager restart
+    netplan apply
+    #
+	export HOME=/var/local/virl2
+    /usr/local/bin/virl2-initial-setup.py
+    #touch /etc/.virl2_unconfigured
+    #systemctl enable --now virl2-initial-setup.service
+    netplan apply
+	systemctl enable --now ssh.service
     systemctl start ssh
 
     # AWS specific (?):
@@ -76,9 +88,9 @@ function cml_configure() {
     API="http://ip6-localhost:8001/api/v0"
 
     # Create system user
-    /usr/sbin/useradd --badname -m -s /bin/bash ${CFG_SYS_USER}
-    echo "${CFG_SYS_USER}:${CFG_SYS_PASS}" | /usr/sbin/chpasswd
-    /usr/sbin/usermod -a -G sudo ${CFG_SYS_USER}
+    #/usr/sbin/useradd --badname -m -s /bin/bash ${CFG_SYS_USER}
+    #echo "${CFG_SYS_USER}:${CFG_SYS_PASS}" | /usr/sbin/chpasswd
+    #/usr/sbin/usermod -a -G sudo ${CFG_SYS_USER}
 
     # Move SSH config from default cloud-provisioned user to new user. This
     # also disables the login for this user by removing the SSH key.
@@ -92,6 +104,7 @@ function cml_configure() {
     #     echo "unknown target"
     # fi
     clouduser="ubuntu"
+    rm -rf /home/${CFG_SYS_USER}/.ssh
     mv /home/$clouduser/.ssh /home/${CFG_SYS_USER}/
     chown -R ${CFG_SYS_USER}.${CFG_SYS_USER} /home/${CFG_SYS_USER}/.ssh
 
@@ -108,18 +121,18 @@ function cml_configure() {
     done
 
     # Get auth token
-    PASS=$(cat /etc/machine-id)
-    TOKEN=$(echo '{"username":"cml2","password":"'$PASS'"}' \ |
-        curl -s -d@- $API/authenticate | jq -r)
-    [ "$TOKEN" != "Authentication failed!" ] || { echo $TOKEN; exit 1; }
+    #PASS=$(cat /etc/machine-id)
+    #TOKEN=$(echo '{"username":"cml2","password":"'$PASS'"}' \ |
+    #    curl -s -d@- $API/authenticate | jq -r)
+    #[ "$TOKEN" != "Authentication failed!" ] || { echo $TOKEN; exit 1; }
 
     # Change to provided name and password
-    curl -s -X "PATCH" \
-        "$API/users/00000000-0000-4000-a000-000000000000" \
-        -H "Authorization: Bearer $TOKEN" \
-        -H "accept: application/json" \
-        -H "Content-Type: application/json" \
-        -d '{"username":"'${CFG_APP_USER}'","password":{"new_password":"'${CFG_APP_PASS}'","old_password":"'$PASS'"}}'
+    #curl -s -X "PATCH" \
+    #    "$API/users/00000000-0000-4000-a000-000000000000" \
+    #    -H "Authorization: Bearer $TOKEN" \
+    #    -H "accept: application/json" \
+    #    -H "Content-Type: application/json" \
+    #    -d '{"username":"'${CFG_APP_USER}'","password":{"new_password":"'${CFG_APP_PASS}'","old_password":"'$PASS'"}}'
 
     # Re-auth with new password
     TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \ |
