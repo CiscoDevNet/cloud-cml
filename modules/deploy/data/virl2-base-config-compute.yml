@@ -1,0 +1,20 @@
+admins:
+  controller:
+    password: ${cfg.app.pass}
+    username: ${cfg.app.user}
+  system:
+    password: ${cfg.sys.pass}
+    username: ${cfg.sys.user}
+cluster_interface: ens6
+compute_secret: ${cfg.cluster.secret}
+controller_name: ${cfg.common.hostname}
+copy_iso_to_disk: false
+hostname: cml-compute-1
+interactive: false
+is_cluster: ${cfg.cluster.enable_cluster}
+is_compute: ${cfg.cluster.allow_vms_on_controller}
+is_configured: false
+is_controller: false
+primary_interface: ens5
+ssh_server: true
+use_ipv4_dhcp: true

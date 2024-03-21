@@ -85,6 +85,7 @@ function base_setup() {
 
 function cml_configure() {
     target=$1
+    CONFIG_FILE="/etc/virl2-base-config.yml"
     API="http://ip6-localhost:8001/api/v0"
 
     # Create system user
@@ -115,6 +116,14 @@ function cml_configure() {
 
     # Change the ownership of the del.sh script to the sysadmin user
     chown ${CFG_SYS_USER}.${CFG_SYS_USER} /provision/del.sh
+
+    if [[ -r "$CONFIG_FILE" ]]; then
+        # Check if this device is a controller
+        if grep -qi "is_controller: false" "$CONFIG_FILE"; then
+            echo "This is not a controller node. No need to install licenses."
+            return 0
+        fi
+    fi
 
     until [ "true" = "$(curl -s $API/system_information | jq -r .ready)" ]; do
         echo "Waiting for controller to be ready..."

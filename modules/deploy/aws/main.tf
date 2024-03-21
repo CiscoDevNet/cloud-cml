@@ -17,7 +17,7 @@ locals {
     }
   )
   
-  cml-config = templatefile("${path.module}/../data/virl2-base-config.yml", { 
+  cml-config-controller = templatefile("${path.module}/../data/virl2-base-config.yml", { 
      cfg = merge(
         var.options.cfg,
         # Need to have this as it's referenced in the template.
@@ -26,12 +26,33 @@ locals {
       )
     }
   )
+
+  cml-config-compute = templatefile("${path.module}/../data/virl2-base-config-compute.yml", { 
+     cfg = merge(
+        var.options.cfg,
+        # Need to have this as it's referenced in the template.
+        # (Azure specific)
+        { sas_token = "undefined" }
+      )
+    }
+  )
+
   # Ensure there's no tabs in the template file! Also ensure that the list of
   # reference platforms has no single quotes in the file names or keys (should
   # be reasonable, but you never know...)
   cloud_config = templatefile("${path.module}/../data/cloud-config.txt", {
     vars       = local.vars
-    cml-config = local.cml-config
+    cml-config = local.cml-config-controller
+    cfg        = var.options.cfg
+    copyfile   = var.options.copyfile
+    del        = var.options.del
+    extras     = var.options.extras
+    path       = path.module
+  })
+
+    cloud_config_compute = templatefile("${path.module}/../data/cloud-config.txt", {
+    vars       = local.vars
+    cml-config = local.cml-config-compute
     cfg        = var.options.cfg
     copyfile   = var.options.copyfile
     del        = var.options.del
@@ -221,12 +242,25 @@ resource "aws_route_table_association" "public_subnet" {
 resource "aws_network_interface" "pub_int_cml" {
     subnet_id = aws_subnet.public_subnet.id
     security_groups = [ aws_security_group.sg-tf.id ]
-    tags = {Name = "CML-pub-int-${var.options.rand_id}"}
+    tags = {Name = "CML-controller-pub-int-${var.options.rand_id}"}
+}
+
+resource "aws_network_interface" "pub_int_cml_compute" {
+    subnet_id = aws_subnet.public_subnet.id
+    security_groups = [ aws_security_group.sg-tf.id ]
+    tags = {Name = "CML-compute-${count.index+1}-pub-int-${var.options.rand_id}"}
+    count = var.options.cfg.cluster.number_of_compute_nodes
 }
 
 resource "aws_eip" "server_eip" {
   network_interface = aws_network_interface.pub_int_cml.id
-  tags = {"Name" = "CML-eip-${var.options.rand_id}", "device" = "server"}
+  tags = {"Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server"}
+}
+
+resource "aws_eip" "server_eip_compute" {
+  network_interface = aws_network_interface.pub_int_cml_compute[count.index].id
+  tags = {"Name" = "CML-compute-${count.index+1}-eip-${var.options.rand_id}", "device" = "server"}
+  count = var.options.cfg.cluster.number_of_compute_nodes
 }
 
 #-------------Cluster Subnet and interface----------------------------------------
@@ -241,11 +275,19 @@ resource "aws_subnet" "cluster_subnet" {
 }
 
 resource "aws_network_interface" "cluster_int_cml" {
-    subnet_id = aws_subnet.cluster_subnet[count.index].id
+    subnet_id = aws_subnet.cluster_subnet[0].id
     ipv6_address_count  = 1 
     security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
-    tags = {Name = "CML-cluster-int-${var.options.rand_id}"}
-    count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+    tags = {Name = "CML-controller-cluster-int-${var.options.rand_id}"}
+    count = var.options.cfg.cluster.enable_cluster ? 1 : 0
+}
+
+resource "aws_network_interface" "cluster_int_cml_compute" {
+    subnet_id = aws_subnet.cluster_subnet[0].id
+    ipv6_address_count  = 1 
+    security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
+    tags = {Name = "CML-compute-${count.index+1}-cluster-int-${var.options.rand_id}"}
+    count = var.options.cfg.cluster.number_of_compute_nodes 
 }
 
 ### IPv6 mcast support for CML clustering
@@ -253,6 +295,10 @@ resource "aws_network_interface" "cluster_int_cml" {
 resource "aws_ec2_transit_gateway" "transit_gateway" {
   description = "CML Transit Gateway"
   multicast_support = "enable"
+  default_route_table_association = "disable"
+  default_route_table_propagation = "disable"
+  dns_support = "disable"
+  vpn_ecmp_support = "disable"
   tags        = {
     Name = "CML-tgw-${var.options.rand_id}"
   }
@@ -260,8 +306,9 @@ resource "aws_ec2_transit_gateway" "transit_gateway" {
 }
 
 resource "aws_ec2_transit_gateway_multicast_domain" "cml_mcast_domain" {
-  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[count.index].id
+  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[0].id
   igmpv2_support = "enable"
+  auto_accept_shared_associations="enable"
   tags = {
     Name = "CML-mcast-domain-${var.options.rand_id}"
   }
@@ -269,9 +316,10 @@ resource "aws_ec2_transit_gateway_multicast_domain" "cml_mcast_domain" {
 }
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "vpc_attachment" {
-  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[count.index].id
+  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[0].id
   vpc_id             = aws_vpc.main-vpc.id
-  subnet_ids         = [aws_subnet.cluster_subnet[count.index].id] 
+  subnet_ids         = [aws_subnet.cluster_subnet[0].id] 
+  ipv6_support       = "enable"
   tags               = {
     Name = "CML-tgw-vpc-attachment-${var.options.rand_id}"
   }
@@ -292,14 +340,20 @@ resource "aws_ec2_transit_gateway_multicast_group_member" "cml_controller_int" {
   count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
 }
 
-resource "aws_instance" "cml" {
+resource "aws_ec2_transit_gateway_multicast_group_member" "cml_compute_int" {
+  group_ip_address                    = "ff02::fb"
+  network_interface_id                = aws_network_interface.cluster_int_cml_compute[count.index].id
+  transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain_association.cml_association[0].transit_gateway_multicast_domain_id
+  count = var.options.cfg.cluster.number_of_compute_nodes
+}
+
+resource "aws_instance" "cml-controller" {
   instance_type          = var.options.cfg.aws.flavor
   ami                    = data.aws_ami.ubuntu.id
   iam_instance_profile   = var.options.cfg.aws.profile
   key_name               = var.options.cfg.common.key_name
   tags                   = {Name = "CML-controller-${var.options.rand_id}"}
   ebs_optimized          = "true"
-  count                  = 1
   dynamic instance_market_options {
         for_each = var.options.cfg.aws.use_spot_instances ? [1] : [] 
         content {  
@@ -325,7 +379,41 @@ resource "aws_instance" "cml" {
            device_index = 1
         }
   } 
-  user_data = data.cloudinit_config.aws_ud.rendered
+  user_data = data.cloudinit_config.cml_controller.rendered
+}
+
+
+resource "aws_instance" "cml-compute" {
+  instance_type          = var.options.cfg.aws.flavor
+  ami                    = data.aws_ami.ubuntu.id
+  iam_instance_profile   = var.options.cfg.aws.profile
+  key_name               = var.options.cfg.common.key_name
+  tags                   = {Name = "CML-compute-${count.index+1}-${var.options.rand_id}"}
+  ebs_optimized          = "true"
+  count                  = var.options.cfg.cluster.number_of_compute_nodes
+  dynamic instance_market_options {
+        for_each = var.options.cfg.aws.use_spot_instances ? [1] : [] 
+        content {  
+          market_type = "spot"
+          spot_options {
+              instance_interruption_behavior = "stop"
+              spot_instance_type = "persistent"
+            }
+          }
+  }
+  root_block_device {
+    volume_size = var.options.cfg.common.disk_size
+    volume_type = "gp3"
+  }
+  network_interface {
+        network_interface_id = aws_network_interface.pub_int_cml_compute[count.index].id
+        device_index = 0
+  } 
+  network_interface {
+           network_interface_id = aws_network_interface.cluster_int_cml_compute[count.index].id
+           device_index = 1
+  } 
+  user_data = data.cloudinit_config.cml_compute.rendered
 }
 
 data "aws_ami" "ubuntu" {
@@ -344,7 +432,25 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Owner ID of Canonical
 }
 
-data "cloudinit_config" "aws_ud" {
+data "cloudinit_config" "cml_controller" {
+  gzip          = true
+  base64_encode = true  # always true if gzip is true
+
+  part {
+    filename     = "userdata.txt"
+    content_type = "text/x-shellscript"
+
+    content = var.options.cml
+  }
+
+  part {
+    filename     = "cloud-config.yaml"
+    content_type = "text/cloud-config"
+    content = local.cloud_config
+  }
+}
+
+data "cloudinit_config" "cml_compute" {
   gzip          = true
   base64_encode = true  # always true if gzip is true
 
@@ -359,6 +465,6 @@ data "cloudinit_config" "aws_ud" {
     filename     = "cloud-config.yaml"
     content_type = "text/cloud-config"
 
-    content = local.cloud_config
+    content = local.cloud_config_compute
   }
 }

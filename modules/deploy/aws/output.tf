@@ -5,7 +5,7 @@
 #
 
 output "public_ip" {
-  value = "${aws_instance.cml[0].public_ip}"
+  value = "${aws_instance.cml-controller.public_ip}"
 }
 
 output "sas_token" {
