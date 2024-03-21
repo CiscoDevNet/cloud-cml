@@ -35,7 +35,7 @@ function base_setup() {
 
     if [[ -r "$CONFIG_FILE" ]]; then
         # Check if this device is a controller
-        if grep -qi "is_controller: false" "$CONFIG_FILE"; then
+        if grep -qi "is_controller: true" "$CONFIG_FILE"; then
 
             # copy node definitions and images to the instance
             VLLI=/var/lib/libvirt/images
