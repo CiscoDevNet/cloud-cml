@@ -68,12 +68,12 @@ function base_setup() {
     service network-manager restart
     netplan apply
     #
-	export HOME=/var/local/virl2
+    export HOME=/var/local/virl2
     /usr/local/bin/virl2-initial-setup.py
     #touch /etc/.virl2_unconfigured
     #systemctl enable --now virl2-initial-setup.service
     netplan apply
-	systemctl enable --now ssh.service
+    systemctl enable --now ssh.service
     systemctl start ssh
 
     # AWS specific (?):
