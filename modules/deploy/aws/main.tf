@@ -391,6 +391,7 @@ resource "aws_instance" "cml-compute" {
   tags                   = {Name = "CML-compute-${count.index+1}-${var.options.rand_id}"}
   ebs_optimized          = "true"
   count                  = var.options.cfg.cluster.number_of_compute_nodes
+  depends_on             = [aws_instance.cml-controller]
   dynamic instance_market_options {
         for_each = var.options.cfg.aws.use_spot_instances ? [1] : [] 
         content {  

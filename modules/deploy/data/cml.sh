@@ -28,36 +28,44 @@ function setup_pre_azure() {
 
 
 function base_setup() {
+    CONFIG_FILE="/etc/virl2-base-config.yml"
     # copy Debian package from cloud storage into our instance
     copyfile ${CFG_APP_DEB} /provision/
 
-    # copy node definitions and images to the instance
-    VLLI=/var/lib/libvirt/images
-    NDEF=node-definitions
-    IDEF=virl-base-images
-    mkdir -p $VLLI/$NDEF
 
-    # copy all node definitions as defined in the provisioned config
-    if [ $(jq </provision/refplat '.definitions|length') -gt 0 ]; then
-        elems=$(jq </provision/refplat -rc '.definitions|join(" ")')
-        for item in $elems; do
-            copyfile refplat/$NDEF/$item.yaml $VLLI/$NDEF/
-        done
-    fi
+    if [[ -r "$CONFIG_FILE" ]]; then
+        # Check if this device is a controller
+        if grep -qi "is_controller: false" "$CONFIG_FILE"; then
 
-    # copy all image definitions as defined in the provisioned config
-    if [ $(jq </provision/refplat '.images|length') -gt 0 ]; then
-        elems=$(jq </provision/refplat -rc '.images|join(" ")')
-        for item in $elems; do
-            mkdir -p $VLLI/$IDEF/$item
-            copyfile refplat/$IDEF/$item/ $VLLI/$IDEF $item --recursive
-        done
-    fi
+            # copy node definitions and images to the instance
+            VLLI=/var/lib/libvirt/images
+            NDEF=node-definitions
+            IDEF=virl-base-images
+            mkdir -p $VLLI/$NDEF
 
-    # if there's no images at this point, copy what's available in the defined
-    # cloud storage container
-    if [ $(find $VLLI -type f | wc -l) -eq 0 ]; then
-        copyfile refplat/ $VLLI/ "" --recursive
+            # copy all node definitions as defined in the provisioned config
+            if [ $(jq </provision/refplat '.definitions|length') -gt 0 ]; then
+                elems=$(jq </provision/refplat -rc '.definitions|join(" ")')
+                for item in $elems; do
+                    copyfile refplat/$NDEF/$item.yaml $VLLI/$NDEF/
+                done
+            fi
+
+            # copy all image definitions as defined in the provisioned config
+            if [ $(jq </provision/refplat '.images|length') -gt 0 ]; then
+                elems=$(jq </provision/refplat -rc '.images|join(" ")')
+                for item in $elems; do
+                    mkdir -p $VLLI/$IDEF/$item
+                    copyfile refplat/$IDEF/$item/ $VLLI/$IDEF $item --recursive
+                done
+            fi
+
+            # if there's no images at this point, copy what's available in the defined
+            # cloud storage container
+            if [ $(find $VLLI -type f | wc -l) -eq 0 ]; then
+                copyfile refplat/ $VLLI/ "" --recursive
+            fi
+        fi
     fi
 
     systemctl stop ssh
@@ -105,8 +113,7 @@ function cml_configure() {
     #     echo "unknown target"
     # fi
     clouduser="ubuntu"
-    rm -rf /home/${CFG_SYS_USER}/.ssh
-    mv /home/$clouduser/.ssh /home/${CFG_SYS_USER}/
+    mv /home/$clouduser/.ssh/* /home/${CFG_SYS_USER}/.ssh/
     chown -R ${CFG_SYS_USER}.${CFG_SYS_USER} /home/${CFG_SYS_USER}/.ssh
     userdel -r $clouduser
 
