@@ -1,18 +1,18 @@
 admins:
   controller:
-    password: 'your-secret-password'
-    username: admin
+    password: ${cfg.app.pass}
+    username: ${cfg.app.user}
   system:
-    password: 'your-secret-password'
-    username: sysadmin
+    password: ${cfg.sys.pass}
+    username: ${cfg.sys.user}
 cluster_interface: ens6
-compute_secret: your-secret-password
-controller_name: cml-controller
+compute_secret: ${cfg.cluster.secret}
+controller_name: ${cfg.common.hostname}
 copy_iso_to_disk: false
-hostname: cml-controller
+hostname: ${cfg.common.hostname}
 interactive: false
-is_cluster: true
-is_compute: false
+is_cluster: ${cfg.cluster.enable_cluster}
+is_compute: ${cfg.cluster.allow_vms_on_controller}
 is_configured: false
 is_controller: true
 primary_interface: ens5

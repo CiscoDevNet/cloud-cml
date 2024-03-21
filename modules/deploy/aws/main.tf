@@ -16,17 +16,27 @@ locals {
       )
     }
   )
-
+  
+  cml-config = templatefile("${path.module}/../data/virl2-base-config.yml", { 
+     cfg = merge(
+        var.options.cfg,
+        # Need to have this as it's referenced in the template.
+        # (Azure specific)
+        { sas_token = "undefined" }
+      )
+    }
+  )
   # Ensure there's no tabs in the template file! Also ensure that the list of
   # reference platforms has no single quotes in the file names or keys (should
   # be reasonable, but you never know...)
   cloud_config = templatefile("${path.module}/../data/cloud-config.txt", {
-    vars     = local.vars
-    cfg      = var.options.cfg
-    copyfile = var.options.copyfile
-    del      = var.options.del
-    extras   = var.options.extras
-    path     = path.module
+    vars       = local.vars
+    cml-config = local.cml-config
+    cfg        = var.options.cfg
+    copyfile   = var.options.copyfile
+    del        = var.options.del
+    extras     = var.options.extras
+    path       = path.module
   })
 
   cml_ingress = [

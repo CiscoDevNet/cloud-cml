@@ -33,7 +33,7 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: |
-      ${indent(6, file("${path}/../data/virl2-base-config.yml"))}
+      ${indent(6, format("%s\n", cml-config))}
   %{ for script in cfg.app.customize }
   - path: /provision/${script}
     owner: root:root

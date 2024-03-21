@@ -107,6 +107,7 @@ function cml_configure() {
     rm -rf /home/${CFG_SYS_USER}/.ssh
     mv /home/$clouduser/.ssh /home/${CFG_SYS_USER}/
     chown -R ${CFG_SYS_USER}.${CFG_SYS_USER} /home/${CFG_SYS_USER}/.ssh
+    userdel -r $clouduser
 
     # allow this user to read the configuration vars
     chgrp ${CFG_SYS_USER} /provision/vars.sh
