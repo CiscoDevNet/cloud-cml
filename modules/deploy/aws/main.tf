@@ -5,6 +5,10 @@
 #
 
 locals {
+  compute_hostnames = [ 
+    for i in range(1, var.options.cfg.cluster.number_of_compute_nodes + 1) :
+    format("%s-%d", var.options.cfg.cluster.compute_hostname_prefix, i)
+  ]
   # Late binding required as the token is only known within the module.
   # (Azure specific)
   vars = templatefile("${path.module}/../data/vars.sh", {
@@ -18,6 +22,9 @@ locals {
   )
   
   cml-config-controller = templatefile("${path.module}/../data/virl2-base-config.yml", { 
+     hostname = var.options.cfg.common.controller_hostname,
+     is_controller = true
+     is_compute = var.options.cfg.cluster.allow_vms_on_controller
      cfg = merge(
         var.options.cfg,
         # Need to have this as it's referenced in the template.
@@ -27,7 +34,10 @@ locals {
     }
   )
 
-  cml-config-compute = templatefile("${path.module}/../data/virl2-base-config-compute.yml", { 
+  cml-config-compute = [for compute_hostname in local.compute_hostnames : templatefile("${path.module}/../data/virl2-base-config.yml", { 
+     hostname = compute_hostname,
+     is_controller = false,
+     is_compute = true,
      cfg = merge(
         var.options.cfg,
         # Need to have this as it's referenced in the template.
@@ -35,7 +45,7 @@ locals {
         { sas_token = "undefined" }
       )
     }
-  )
+  )]
 
   # Ensure there's no tabs in the template file! Also ensure that the list of
   # reference platforms has no single quotes in the file names or keys (should
@@ -47,18 +57,20 @@ locals {
     copyfile   = var.options.copyfile
     del        = var.options.del
     extras     = var.options.extras
+    hostname   = var.options.cfg.common.controller_hostname
     path       = path.module
   })
 
-    cloud_config_compute = templatefile("${path.module}/../data/cloud-config.txt", {
+  cloud_config_compute = [for i in range (0, var.options.cfg.cluster.number_of_compute_nodes): templatefile("${path.module}/../data/cloud-config.txt", {
     vars       = local.vars
-    cml-config = local.cml-config-compute
+    cml-config = local.cml-config-compute[i]
     cfg        = var.options.cfg
     copyfile   = var.options.copyfile
     del        = var.options.del
     extras     = var.options.extras
+    hostname   = local.compute_hostnames[i]
     path       = path.module
-  })
+  })]
 
   cml_ingress = [
     {
@@ -355,7 +367,7 @@ resource "aws_instance" "cml-controller" {
   tags                   = {Name = "CML-controller-${var.options.rand_id}"}
   ebs_optimized          = "true"
   dynamic instance_market_options {
-        for_each = var.options.cfg.aws.use_spot_instances ? [1] : [] 
+        for_each = var.options.cfg.aws.spot_instances.use_spot_for_controller ? [1] : [] 
         content {  
           market_type = "spot"
           spot_options {
@@ -367,6 +379,7 @@ resource "aws_instance" "cml-controller" {
   root_block_device {
     volume_size = var.options.cfg.common.disk_size
     volume_type = "gp3"
+    encrypted   = var.options.cfg.aws.enable_ebs_encryption
   }
   network_interface {
         network_interface_id = aws_network_interface.pub_int_cml.id
@@ -393,7 +406,7 @@ resource "aws_instance" "cml-compute" {
   count                  = var.options.cfg.cluster.number_of_compute_nodes
   depends_on             = [aws_instance.cml-controller]
   dynamic instance_market_options {
-        for_each = var.options.cfg.aws.use_spot_instances ? [1] : [] 
+        for_each = var.options.cfg.aws.spot_instances.use_spot_for_computes ? [1] : [] 
         content {  
           market_type = "spot"
           spot_options {
@@ -403,8 +416,9 @@ resource "aws_instance" "cml-compute" {
           }
   }
   root_block_device {
-    volume_size = var.options.cfg.common.disk_size
+    volume_size = var.options.cfg.cluster.compute_disk_size
     volume_type = "gp3"
+    encrypted   = var.options.cfg.aws.enable_ebs_encryption
   }
   network_interface {
         network_interface_id = aws_network_interface.pub_int_cml_compute[count.index].id
@@ -414,7 +428,7 @@ resource "aws_instance" "cml-compute" {
            network_interface_id = aws_network_interface.cluster_int_cml_compute[count.index].id
            device_index = 1
   } 
-  user_data = data.cloudinit_config.cml_compute.rendered
+  user_data = data.cloudinit_config.cml_compute[count.index].rendered
 }
 
 data "aws_ami" "ubuntu" {
@@ -454,7 +468,7 @@ data "cloudinit_config" "cml_controller" {
 data "cloudinit_config" "cml_compute" {
   gzip          = true
   base64_encode = true  # always true if gzip is true
-
+  count         = var.options.cfg.cluster.number_of_compute_nodes
   part {
     filename     = "userdata.txt"
     content_type = "text/x-shellscript"
@@ -466,6 +480,6 @@ data "cloudinit_config" "cml_compute" {
     filename     = "cloud-config.yaml"
     content_type = "text/cloud-config"
 
-    content = local.cloud_config_compute
+    content = local.cloud_config_compute[count.index]
   }
 }

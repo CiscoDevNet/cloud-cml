@@ -2,7 +2,7 @@
 package_update: true
 package_upgrade: true
 
-hostname: ${cfg.common.hostname}
+hostname: ${hostname}
 manage_etc_hosts: true
 
 packages:
