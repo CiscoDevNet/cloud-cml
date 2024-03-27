@@ -70,19 +70,21 @@ function base_setup() {
 
     systemctl stop ssh
     apt-get install -y /provision/${CFG_APP_DEB}
-    # fix for the NM on AWS
-    echo "    renderer: NetworkManager" >> /etc/netplan/50-cloud-init.yaml
+    # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
+    /provision/interface_fix.py
+    #echo "    renderer: NetworkManager" >> /etc/netplan/50-cloud-init.yaml
     sed -i 's/^unmanaged-devices=.*/unmanaged-devices=none/' /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
     service network-manager restart
     netplan apply
-    #
-    export HOME=/var/local/virl2
-    /usr/local/bin/virl2-initial-setup.py
-    #touch /etc/.virl2_unconfigured
-    #systemctl enable --now virl2-initial-setup.service
+    # Fix for the headless setup (tty remove)
+    sed -i '/^Standard/ s/^/#/' /lib/systemd/system/virl2-initial-setup.service
+    touch /etc/.virl2_unconfigured
+    systemctl stop getty@tty1.service
+    systemctl enable --now virl2-initial-setup.service
     netplan apply
     systemctl enable --now ssh.service
-    systemctl start ssh
+    systemctl start getty@tty1.service
+    #systemctl start ssh
 
     # AWS specific (?):
     # For troubleshooting. To allow console access on AWS, the root user needs a
@@ -113,7 +115,13 @@ function cml_configure() {
     #     echo "unknown target"
     # fi
     clouduser="ubuntu"
-    mv /home/$clouduser/.ssh/* /home/${CFG_SYS_USER}/.ssh/
+    if [[ -d /home/${CFG_SYS_USER}/.ssh ]]; then
+        # Directory exists - Move individual files within .ssh 
+        mv /home/$clouduser/.ssh/* /home/${CFG_SYS_USER}/.ssh/
+    else
+        # Directory doesn't exist - Move the entire .ssh directory
+        mv /home/$clouduser/.ssh/ /home/${CFG_SYS_USER}/
+    fi
     chown -R ${CFG_SYS_USER}.${CFG_SYS_USER} /home/${CFG_SYS_USER}/.ssh
     userdel -r $clouduser
 

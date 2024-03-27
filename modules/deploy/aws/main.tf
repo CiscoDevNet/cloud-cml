@@ -51,25 +51,27 @@ locals {
   # reference platforms has no single quotes in the file names or keys (should
   # be reasonable, but you never know...)
   cloud_config = templatefile("${path.module}/../data/cloud-config.txt", {
-    vars       = local.vars
-    cml-config = local.cml-config-controller
-    cfg        = var.options.cfg
-    copyfile   = var.options.copyfile
-    del        = var.options.del
-    extras     = var.options.extras
-    hostname   = var.options.cfg.common.controller_hostname
-    path       = path.module
+    vars          = local.vars
+    cml-config    = local.cml-config-controller
+    cfg           = var.options.cfg
+    copyfile      = var.options.copyfile
+    del           = var.options.del
+    interface_fix = var.options.interface_fix
+    extras        = var.options.extras
+    hostname      = var.options.cfg.common.controller_hostname
+    path          = path.module
   })
 
   cloud_config_compute = [for i in range (0, var.options.cfg.cluster.number_of_compute_nodes): templatefile("${path.module}/../data/cloud-config.txt", {
-    vars       = local.vars
-    cml-config = local.cml-config-compute[i]
-    cfg        = var.options.cfg
-    copyfile   = var.options.copyfile
-    del        = var.options.del
-    extras     = var.options.extras
-    hostname   = local.compute_hostnames[i]
-    path       = path.module
+    vars          = local.vars
+    cml-config    = local.cml-config-compute[i]
+    cfg           = var.options.cfg
+    copyfile      = var.options.copyfile
+    del           = var.options.del
+    interface_fix = var.options.interface_fix
+    extras        = var.options.extras
+    hostname      = local.compute_hostnames[i]
+    path          = path.module
   })]
 
   cml_ingress = [

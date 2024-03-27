@@ -29,6 +29,11 @@ write_files:
     permissions: "0700"
     content: |
       ${indent(6, del)}
+  - path: /provision/interface_fix.py
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, interface_fix)}
   - path: /etc/virl2-base-config.yml
     owner: root:root
     permissions: "0644"
