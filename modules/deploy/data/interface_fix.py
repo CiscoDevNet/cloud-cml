@@ -14,11 +14,15 @@ def get_interface_names(netplan_file):
     with open(netplan_file, 'r') as f:
         netplan_data = yaml.safe_load(f)
 
-    interface_names = []
-    for interface in netplan_data['network']['ethernets']:
-        interface_names.append(interface)
+    interfaces = []
+    for interface_name, interface_config in netplan_data['network']['ethernets'].items():
+        route_metric = interface_config.get('dhcp4-overrides', {}).get('route-metric', float('inf'))
+        interfaces.append((interface_name, route_metric))
 
-    return interface_names
+    # Sort interfaces based on route-metric (ascending) to detect primary interface
+    interfaces.sort(key=lambda item: item[1]) 
+
+    return [interface[0] for interface in interfaces]  # Return just the interface names
 
 
 def update_netplan_config(netplan_file, renderer='NetworkManager'):
