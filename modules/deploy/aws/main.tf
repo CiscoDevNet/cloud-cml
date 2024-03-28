@@ -239,7 +239,7 @@ resource "aws_subnet" "public_subnet" {
     map_public_ip_on_launch = true
     tags = {"Name" = "CML-public-${var.options.rand_id}"}
 }
-resource "aws_route_table" "for_public_subnet" {
+resource "aws_route_table" "for_public_subnet" {   
     vpc_id = aws_vpc.main-vpc.id
     route {
         cidr_block = "0.0.0.0/0"
@@ -258,39 +258,80 @@ resource "aws_network_interface" "pub_int_cml" {
     security_groups = [ aws_security_group.sg-tf.id ]
     tags = {Name = "CML-controller-pub-int-${var.options.rand_id}"}
 }
-
-resource "aws_network_interface" "pub_int_cml_compute" {
-    subnet_id = aws_subnet.public_subnet.id
-    security_groups = [ aws_security_group.sg-tf.id ]
-    tags = {Name = "CML-compute-${count.index+1}-pub-int-${var.options.rand_id}"}
-    count = var.options.cfg.cluster.number_of_compute_nodes
-}
-
 resource "aws_eip" "server_eip" {
   network_interface = aws_network_interface.pub_int_cml.id
   tags = {"Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server"}
 }
 
-resource "aws_eip" "server_eip_compute" {
-  network_interface = aws_network_interface.pub_int_cml_compute[count.index].id
-  tags = {"Name" = "CML-compute-${count.index+1}-eip-${var.options.rand_id}", "device" = "server"}
-  count = var.options.cfg.cluster.number_of_compute_nodes
+#-------------Compute subnet, NAT GW, routing and interfaces ----------------------------------------
+
+resource "aws_subnet" "compute_nat_subnet" {
+    availability_zone = var.options.cfg.aws.availability_zone
+    cidr_block = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 1)
+    vpc_id = aws_vpc.main-vpc.id
+    tags = {"Name" = "CML-compute-nat-${var.options.rand_id}"}
+    count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+}
+
+resource "aws_eip" "nat_eip" {
+  tags = {
+    Name = "CML-compute-nat-gw-eip-${var.options.rand_id}"
+  }
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+}
+resource "aws_nat_gateway" "compute_nat_gw" {
+  allocation_id = aws_eip.nat_eip[0].id  // Allocate an EIP 
+  subnet_id     = aws_subnet.public_subnet.id 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0
+  tags = {
+    Name = "CML-compute-nat-gw-${var.options.rand_id}"
+  }
+  # Ensure creation after EIP and subnet resources exist
+  depends_on = [
+    aws_eip.nat_eip,
+    aws_subnet.compute_nat_subnet
+  ]
+}
+resource "aws_route_table" "compute_route_table" {
+  vpc_id = aws_vpc.main-vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.compute_nat_gw[0].id 
+  }
+  tags = {
+    Name = "CML-cluster-rt-${var.options.rand_id}"
+  }
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+}
+
+resource "aws_route_table_association" "compute_subnet_assoc" {
+  subnet_id      = aws_subnet.compute_nat_subnet[0].id 
+  route_table_id = aws_route_table.compute_route_table[0].id
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+}
+
+resource "aws_network_interface" "nat_int_cml_compute" {
+    subnet_id = aws_subnet.compute_nat_subnet[0].id
+    security_groups = [ aws_security_group.sg-tf.id ]
+    tags = {Name = "CML-compute-${count.index+1}-nat-int-${var.options.rand_id}"}
+    count = var.options.cfg.cluster.number_of_compute_nodes
 }
 
 #-------------Cluster Subnet and interface----------------------------------------
 
 resource "aws_subnet" "cluster_subnet" {
     availability_zone = var.options.cfg.aws.availability_zone
-    cidr_block = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 1)
+    cidr_block = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 255)
     ipv6_cidr_block = cidrsubnet(aws_vpc.main-vpc.ipv6_cidr_block, 8, 1) 
     vpc_id = aws_vpc.main-vpc.id
     tags = {"Name" = "CML-cluster-${var.options.rand_id}"}
     count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+    assign_ipv6_address_on_creation = true 
 }
 
 resource "aws_network_interface" "cluster_int_cml" {
     subnet_id = aws_subnet.cluster_subnet[0].id
-    ipv6_address_count  = 1 
     security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
     tags = {Name = "CML-controller-cluster-int-${var.options.rand_id}"}
     count = var.options.cfg.cluster.enable_cluster ? 1 : 0
@@ -298,7 +339,6 @@ resource "aws_network_interface" "cluster_int_cml" {
 
 resource "aws_network_interface" "cluster_int_cml_compute" {
     subnet_id = aws_subnet.cluster_subnet[0].id
-    ipv6_address_count  = 1 
     security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
     tags = {Name = "CML-compute-${count.index+1}-cluster-int-${var.options.rand_id}"}
     count = var.options.cfg.cluster.number_of_compute_nodes 
@@ -423,7 +463,7 @@ resource "aws_instance" "cml-compute" {
     encrypted   = var.options.cfg.aws.enable_ebs_encryption
   }
   network_interface {
-        network_interface_id = aws_network_interface.pub_int_cml_compute[count.index].id
+        network_interface_id = aws_network_interface.nat_int_cml_compute[count.index].id
         device_index = 0
   } 
   network_interface {
