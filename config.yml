@@ -61,9 +61,17 @@ refplat:
     # - alpine-wanem
     # - asav
     # - cat8000v
-    # - cat9000v-s1
+    # - cat9000v-q200
+    # - cat9000v-uadp
+    # - cat-sdwan-edge
+    # - cat-sdwan-controller
+    # - cat-sdwan-manager
+    # - cat-sdwan-validator
+    # - cat-sdwan-vedge
     # - csr1000v
     # - desktop
+    - iol-xe
+    - ioll2-xe
     - iosv
     - iosvl2
     # - iosxrv9000
@@ -71,17 +79,25 @@ refplat:
     - server
     - ubuntu
   images:
-    - alpine-3-16-2-base
-    # - alpine-3-16-2-trex
-    # - alpine-3-16-2-wanem
-    # - asav-9-18-2
-    # - cat8000v-17-09-01a
-    # - cat9000v-s1-17.10.01prd7
-    # - csr1000v-17-03-06
-    # - desktop-3-16-2-xfce
-    - iosv-159-3-m6
+    - alpine-3-19-1-base
+    # - alpine-3-19-1-trex
+    # - alpine-3-19-1-wanem
+    # - asav-9-20-2
+    # - cat8000v-17-13-01a
+    # - cat9000v-q200-17-12-01prd9
+    # - cat9000v-uadp-17-12-01prd9
+    # - cat-sdwan-edge-17-13-01a
+    # - cat-sdwan-controller-20-13-1
+    # - cat-sdwan-manager-20-13-1
+    # - cat-sdwan-validator-20-13-1
+    # - cat-sdwan-vedge-20-13-1
+    # - csr1000v-17-03-068a
+    # - desktop-3-19-1-xfce
+    - iol-xe-17-12-01
+    - ioll2-xe-17-12-01
+    - iosv-159-3-m8
     - iosvl2-2020
-    # - iosxrv9000-7-7-1
-    # - nxosv9300-10-3-1-f
-    - server-tcl-13-1
-    - ubuntu-22-04-20221028
+    # - iosxrv9000-7-11-1
+    # - nxosv9300-10-4-2-f
+    - server-tcl-14-1
+    - ubuntu-22-04-20240126
