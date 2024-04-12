@@ -11,10 +11,10 @@ target: aws
 aws:
   region: us-east-1
   availability_zone: us-east-1a
-  bucket: cml-s3-bucket
-  flavor: c5.xlarge
-  # flavor: m5zn.metal
-  profile: s3-access-for-ec2
+  bucket: bucket-name-goes-here
+  # flavor: c5.2xlarge
+  flavor: m5zn.metal
+  profile: permission-profile-goes-here
   public_vpc_ipv4_cidr: 10.0.0.0/16
   enable_ebs_encryption: false
   spot_instances:
@@ -46,13 +46,13 @@ app:
   pass: your-secret-password
   # need to escape special chars:
   # pass: '\"!@$%'
-  deb: cml2_2.7.0-3_amd64.deb
+  deb: cml2_2.7.0-4_amd64.deb
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
   customize:
-    - 00-patch_vmx.sh
+    # - 00-patch_vmx.sh
     # - 01-patty.sh
-    # - 99-dummy.sh
+    - 99-dummy.sh
 
 sys:
   user: sysadmin
@@ -76,27 +76,43 @@ refplat:
     # - alpine-wanem
     # - asav
     # - cat8000v
-    # - cat9000v-s1
+    # - cat9000v-q200
+    # - cat9000v-uadp
+    # - cat-sdwan-edge
+    # - cat-sdwan-controller
+    # - cat-sdwan-manager
+    # - cat-sdwan-validator
+    # - cat-sdwan-vedge
     # - csr1000v
     # - desktop
-    # - iosv
-    # - iosvl2
+    - iol-xe
+    - ioll2-xe
+    - iosv
+    - iosvl2
     # - iosxrv9000
     # - nxosv9000
-    # - server
-    # - ubuntu
+    - server
+    - ubuntu
   images:
-    - alpine-3-16-2-base
-    # - alpine-3-16-2-trex
-    # - alpine-3-16-2-wanem
-    # - asav-9-18-2
-    # - cat8000v-17-09-01a
-    # - cat9000v-s1-17.10.01prd7
-    # - csr1000v-17-03-06
-    # - desktop-3-16-2-xfce
-    # - iosv-159-3-m6
-    # - iosvl2-2020
-    # - iosxrv9000-7-7-1
-    # - nxosv9300-10-3-1-f
-    # - server-tcl-13-1
-    # - ubuntu-22-04-20221028
+    - alpine-3-19-1-base
+    # - alpine-3-19-1-trex
+    # - alpine-3-19-1-wanem
+    # - asav-9-20-2
+    # - cat8000v-17-13-01a
+    # - cat9000v-q200-17-12-01prd9
+    # - cat9000v-uadp-17-12-01prd9
+    # - cat-sdwan-edge-17-13-01a
+    # - cat-sdwan-controller-20-13-1
+    # - cat-sdwan-manager-20-13-1
+    # - cat-sdwan-validator-20-13-1
+    # - cat-sdwan-vedge-20-13-1
+    # - csr1000v-17-03-068a
+    # - desktop-3-19-1-xfce
+    - iol-xe-17-12-01
+    - ioll2-xe-17-12-01
+    - iosv-159-3-m8
+    - iosvl2-2020
+    # - iosxrv9000-7-11-1
+    # - nxosv9300-10-4-2-f
+    - server-tcl-14-1
+    - ubuntu-22-04-20240126
