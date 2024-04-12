@@ -5,7 +5,7 @@ admins:
   system:
     password: ${cfg.sys.pass}
     username: ${cfg.sys.user}
-cluster_interface: ''
+cluster_interface: ""
 compute_secret: ${cfg.cluster.secret}
 controller_name: ${cfg.common.controller_hostname}
 copy_iso_to_disk: false
@@ -15,6 +15,6 @@ is_cluster: ${cfg.cluster.enable_cluster}
 is_compute: ${is_compute}
 is_configured: false
 is_controller: ${is_controller}
-primary_interface: ''
+primary_interface: ""
 ssh_server: true
 use_ipv4_dhcp: true

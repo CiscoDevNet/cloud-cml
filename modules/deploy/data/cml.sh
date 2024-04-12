@@ -9,16 +9,13 @@
 # set -x
 # set -e
 
-
 source /provision/vars.sh
 source /provision/copyfile.sh
-
 
 function setup_pre_aws() {
     export AWS_DEFAULT_REGION=${CFG_AWS_REGION}
     apt-get install -y awscli
 }
-
 
 function setup_pre_azure() {
     curl -LO https://aka.ms/downloadazcopy-v10-linux
@@ -26,12 +23,10 @@ function setup_pre_azure() {
     chmod a+x /usr/local/bin/azcopy
 }
 
-
 function base_setup() {
     CONFIG_FILE="/etc/virl2-base-config.yml"
     # copy Debian package from cloud storage into our instance
     copyfile ${CFG_APP_DEB} /provision/
-
 
     if [[ -r "$CONFIG_FILE" ]]; then
         # Check if this device is a controller
@@ -72,9 +67,8 @@ function base_setup() {
     apt-get install -y /provision/${CFG_APP_DEB}
     # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
     /provision/interface_fix.py
-    #echo "    renderer: NetworkManager" >> /etc/netplan/50-cloud-init.yaml
     sed -i 's/^unmanaged-devices=.*/unmanaged-devices=none/' /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
-    service network-manager restart
+    systemctl restart network-manager
     netplan apply
     # Fix for the headless setup (tty remove)
     sed -i '/^Standard/ s/^/#/' /lib/systemd/system/virl2-initial-setup.service
@@ -84,14 +78,12 @@ function base_setup() {
     netplan apply
     systemctl enable --now ssh.service
     systemctl start getty@tty1.service
-    #systemctl start ssh
 
     # AWS specific (?):
     # For troubleshooting. To allow console access on AWS, the root user needs a
     # password. Note: not all instance types / flavors provide a serial console!
     # echo "root:secret-password-here" | /usr/sbin/chpasswd
 }
-
 
 function cml_configure() {
     target=$1
@@ -116,7 +108,7 @@ function cml_configure() {
     # fi
     clouduser="ubuntu"
     if [[ -d /home/${CFG_SYS_USER}/.ssh ]]; then
-        # Directory exists - Move individual files within .ssh 
+        # Directory exists - Move individual files within .ssh
         mv /home/$clouduser/.ssh/* /home/${CFG_SYS_USER}/.ssh/
     else
         # Directory doesn't exist - Move the entire .ssh directory
@@ -145,6 +137,7 @@ function cml_configure() {
         sleep 5
     done
 
+    # --- Not required since passwords are provided in the virl2-base-config.yml
     # Get auth token
     #PASS=$(cat /etc/machine-id)
     #TOKEN=$(echo '{"username":"cml2","password":"'$PASS'"}' \ |
@@ -158,9 +151,10 @@ function cml_configure() {
     #    -H "accept: application/json" \
     #    -H "Content-Type: application/json" \
     #    -d '{"username":"'${CFG_APP_USER}'","password":{"new_password":"'${CFG_APP_PASS}'","old_password":"'$PASS'"}}'
+    # --- Not required since passwords are provided in the virl2-base-config.yml
 
     # Re-auth with new password
-    TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \ |
+    TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \  |
         curl -s -d@- $API/authenticate | jq -r)
 
     # This is still local, everything below talks to GCH licensing servers
@@ -189,11 +183,11 @@ function cml_configure() {
             -H "Authorization: Bearer $TOKEN" \
             -H "accept: application/json")
 
-        if [ "$(echo $result | jq -r '.registration.status')" = "COMPLETED" ] && [ "$(echo $result | jq -r '.authorization.status')" = "IN_COMPLIANCE" ] ; then
+        if [ "$(echo $result | jq -r '.registration.status')" = "COMPLETED" ] && [ "$(echo $result | jq -r '.authorization.status')" = "IN_COMPLIANCE" ]; then
             break
         fi
         echo "no license, trying again ($attempts)"
-        (( attempts-- ))
+        ((attempts--))
     done
 
     if [ $attempts -eq 0 ]; then
@@ -214,7 +208,6 @@ function cml_configure() {
         -H "Content-Type: application/json" \
         -d '{"'$ID'":'${CFG_LICENSE_NODES}'}'
 }
-
 
 function postprocess() {
     FILELIST=$(find /provision/ -type f | egrep '[0-9]{2}-[[:alnum:]_]+\.sh' | grep -v '99-dummy' | sort)
@@ -242,7 +235,6 @@ function postprocess() {
     fi
 }
 
-
 # Ensure non-interactive Debian package installation
 APT_OPTS="-o Dpkg::Options::=--force-confmiss -o Dpkg::Options::=--force-confnew"
 APT_OPTS+=" -o DPkg::Progress-Fancy=0 -o APT::Color=0"
@@ -251,16 +243,16 @@ export APT_OPTS DEBIAN_FRONTEND
 
 # Run the appropriate pre-setup function
 case $CFG_TARGET in
-    aws)
-        setup_pre_aws
-        ;;
-    azure)
-        setup_pre_azure
-        ;;
-    *)
-        echo "unknown target!"
-        exit 1
-        ;;
+aws)
+    setup_pre_aws
+    ;;
+azure)
+    setup_pre_azure
+    ;;
+*)
+    echo "unknown target!"
+    exit 1
+    ;;
 esac
 
 # Only run the base setup when there's a provision directory both with
@@ -274,4 +266,3 @@ if [ ! -f /tmp/PACKER_BUILD ]; then
     cml_configure ${CFG_TARGET}
     postprocess
 fi
-

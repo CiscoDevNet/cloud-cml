@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import yaml
 
+
 def get_interface_names(netplan_file):
     """Parses the netplan file to extract interface names.
 
@@ -11,37 +12,41 @@ def get_interface_names(netplan_file):
         list: A list of interface names found in the file.
     """
 
-    with open(netplan_file, 'r') as f:
+    with open(netplan_file, "r") as f:
         netplan_data = yaml.safe_load(f)
 
     interfaces = []
-    for interface_name, interface_config in netplan_data['network']['ethernets'].items():
-        route_metric = interface_config.get('dhcp4-overrides', {}).get('route-metric', float('inf'))
+    for interface_name, interface_config in netplan_data["network"][
+        "ethernets"
+    ].items():
+        route_metric = interface_config.get("dhcp4-overrides", {}).get(
+            "route-metric", float("inf")
+        )
         interfaces.append((interface_name, route_metric))
 
     # Sort interfaces based on route-metric (ascending) to detect primary interface
-    interfaces.sort(key=lambda item: item[1]) 
+    interfaces.sort(key=lambda item: item[1])
 
     return [interface[0] for interface in interfaces]  # Return just the interface names
 
 
-def update_netplan_config(netplan_file, renderer='NetworkManager'):
+def update_netplan_config(netplan_file, renderer="NetworkManager"):
     """Updates the Netplan config file with the specified renderer.
 
     Args:
         netplan_file (str): Path to the Netplan configuration file.
         renderer (str, optional): The renderer to use. Defaults to 'NetworkManager'.
     """
-    with open(netplan_file, 'r') as f:
+    with open(netplan_file, "r") as f:
         netplan_data = yaml.safe_load(f)
 
-    if 'network' not in netplan_data:
-        netplan_data['network'] = {}
+    if "network" not in netplan_data:
+        netplan_data["network"] = {}
 
-    netplan_data['network']['renderer'] = renderer
+    netplan_data["network"]["renderer"] = renderer
 
-    with open(netplan_file, 'w') as f:
-        yaml.dump(netplan_data, f)
+    with open(netplan_file, "w") as f:
+        yaml.safe_dump(netplan_data, f)
 
 
 def update_virl2_config(virl2_config_file, primary_interface, cluster_interface=None):
@@ -53,20 +58,20 @@ def update_virl2_config(virl2_config_file, primary_interface, cluster_interface=
         cluster_interface (str, optional): Name of the cluster interface (if any).
     """
 
-    with open(virl2_config_file, 'r') as f:
+    with open(virl2_config_file, "r") as f:
         virl2_data = yaml.safe_load(f)
 
-    virl2_data['primary_interface'] = primary_interface
+    virl2_data["primary_interface"] = primary_interface
     if cluster_interface:
-        virl2_data['cluster_interface'] = cluster_interface
+        virl2_data["cluster_interface"] = cluster_interface
 
-    with open(virl2_config_file, 'w') as f:
-        yaml.dump(virl2_data, f)
+    with open(virl2_config_file, "w") as f:
+        yaml.safe_dump(virl2_data, f)
 
 
 # Configuration paths
-netplan_file = '/etc/netplan/50-cloud-init.yaml'
-virl2_config_file = '/etc/virl2-base-config.yml'
+netplan_file = "/etc/netplan/50-cloud-init.yaml"
+virl2_config_file = "/etc/virl2-base-config.yml"
 
 # Get interface names
 interface_names = get_interface_names(netplan_file)

@@ -5,7 +5,7 @@
 #
 
 locals {
-  compute_hostnames = [ 
+  compute_hostnames = [
     for i in range(1, var.options.cfg.cluster.number_of_compute_nodes + 1) :
     format("%s-%d", var.options.cfg.cluster.compute_hostname_prefix, i)
   ]
@@ -13,37 +13,37 @@ locals {
   # (Azure specific)
   vars = templatefile("${path.module}/../data/vars.sh", {
     cfg = merge(
-        var.options.cfg,
-        # Need to have this as it's referenced in the template.
-        # (Azure specific)
-        { sas_token = "undefined" }
-      )
-    }
-  )
-  
-  cml-config-controller = templatefile("${path.module}/../data/virl2-base-config.yml", { 
-     hostname = var.options.cfg.common.controller_hostname,
-     is_controller = true
-     is_compute = var.options.cfg.cluster.allow_vms_on_controller
-     cfg = merge(
-        var.options.cfg,
-        # Need to have this as it's referenced in the template.
-        # (Azure specific)
-        { sas_token = "undefined" }
-      )
+      var.options.cfg,
+      # Need to have this as it's referenced in the template.
+      # (Azure specific)
+      { sas_token = "undefined" }
+    )
     }
   )
 
-  cml-config-compute = [for compute_hostname in local.compute_hostnames : templatefile("${path.module}/../data/virl2-base-config.yml", { 
-     hostname = compute_hostname,
-     is_controller = false,
-     is_compute = true,
-     cfg = merge(
-        var.options.cfg,
-        # Need to have this as it's referenced in the template.
-        # (Azure specific)
-        { sas_token = "undefined" }
-      )
+  cml-config-controller = templatefile("${path.module}/../data/virl2-base-config.yml", {
+    hostname      = var.options.cfg.common.controller_hostname,
+    is_controller = true
+    is_compute    = var.options.cfg.cluster.allow_vms_on_controller
+    cfg = merge(
+      var.options.cfg,
+      # Need to have this as it's referenced in the template.
+      # (Azure specific)
+      { sas_token = "undefined" }
+    )
+    }
+  )
+
+  cml-config-compute = [for compute_hostname in local.compute_hostnames : templatefile("${path.module}/../data/virl2-base-config.yml", {
+    hostname      = compute_hostname,
+    is_controller = false,
+    is_compute    = true,
+    cfg = merge(
+      var.options.cfg,
+      # Need to have this as it's referenced in the template.
+      # (Azure specific)
+      { sas_token = "undefined" }
+    )
     }
   )]
 
@@ -62,7 +62,7 @@ locals {
     path          = path.module
   })
 
-  cloud_config_compute = [for i in range (0, var.options.cfg.cluster.number_of_compute_nodes): templatefile("${path.module}/../data/cloud-config.txt", {
+  cloud_config_compute = [for i in range(0, var.options.cfg.cluster.number_of_compute_nodes) : templatefile("${path.module}/../data/cloud-config.txt", {
     vars          = local.vars
     cml-config    = local.cml-config-compute[i]
     cfg           = var.options.cfg
@@ -196,7 +196,7 @@ resource "aws_security_group" "sg-tf-cluster-int" {
       "to_port" : 0
       "protocol" : "-1",
       "cidr_blocks" : [],
-      "ipv6_cidr_blocks" : [ "::/0"],
+      "ipv6_cidr_blocks" : ["::/0"],
       "prefix_list_ids" : [],
       "security_groups" : [],
       "self" : false,
@@ -209,7 +209,7 @@ resource "aws_security_group" "sg-tf-cluster-int" {
       "to_port" : 0
       "protocol" : "-1",
       "cidr_blocks" : [],
-      "ipv6_cidr_blocks" : [ "::/0"],
+      "ipv6_cidr_blocks" : ["::/0"],
       "prefix_list_ids" : [],
       "security_groups" : [],
       "self" : false,
@@ -220,7 +220,7 @@ resource "aws_security_group" "sg-tf-cluster-int" {
 ### Non default VPC configuration
 #------------- VPC ----------------------------------------
 resource "aws_vpc" "main-vpc" {
-  cidr_block = var.options.cfg.aws.public_vpc_ipv4_cidr
+  cidr_block                       = var.options.cfg.aws.public_vpc_ipv4_cidr
   assign_generated_ipv6_cidr_block = true
   tags = {
     Name = "CML-vpc-${var.options.rand_id}"
@@ -229,60 +229,60 @@ resource "aws_vpc" "main-vpc" {
 
 #-------------Public Subnet, IGW and Routing----------------------------------------
 resource "aws_internet_gateway" "public_igw" {
-    vpc_id = aws_vpc.main-vpc.id
-    tags = {"Name" = "CML-igw-${var.options.rand_id}"}
+  vpc_id = aws_vpc.main-vpc.id
+  tags   = { "Name" = "CML-igw-${var.options.rand_id}" }
 }
 resource "aws_subnet" "public_subnet" {
-    availability_zone = var.options.cfg.aws.availability_zone
-    cidr_block = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 0)
-    vpc_id = aws_vpc.main-vpc.id
-    map_public_ip_on_launch = true
-    tags = {"Name" = "CML-public-${var.options.rand_id}"}
+  availability_zone       = var.options.cfg.aws.availability_zone
+  cidr_block              = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 0)
+  vpc_id                  = aws_vpc.main-vpc.id
+  map_public_ip_on_launch = true
+  tags                    = { "Name" = "CML-public-${var.options.rand_id}" }
 }
-resource "aws_route_table" "for_public_subnet" {   
-    vpc_id = aws_vpc.main-vpc.id
-    route {
-        cidr_block = "0.0.0.0/0"
-        gateway_id = aws_internet_gateway.public_igw.id
-    }
-    tags = {"Name" = "CML-public-${var.options.rand_id}"}
+resource "aws_route_table" "for_public_subnet" {
+  vpc_id = aws_vpc.main-vpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.public_igw.id
+  }
+  tags = { "Name" = "CML-public-${var.options.rand_id}" }
 }
-  
+
 resource "aws_route_table_association" "public_subnet" {
-    subnet_id = aws_subnet.public_subnet.id
-    route_table_id = aws_route_table.for_public_subnet.id
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.for_public_subnet.id
 }
 
 resource "aws_network_interface" "pub_int_cml" {
-    subnet_id = aws_subnet.public_subnet.id
-    security_groups = [ aws_security_group.sg-tf.id ]
-    tags = {Name = "CML-controller-pub-int-${var.options.rand_id}"}
+  subnet_id       = aws_subnet.public_subnet.id
+  security_groups = [aws_security_group.sg-tf.id]
+  tags            = { Name = "CML-controller-pub-int-${var.options.rand_id}" }
 }
 resource "aws_eip" "server_eip" {
   network_interface = aws_network_interface.pub_int_cml.id
-  tags = {"Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server"}
+  tags              = { "Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server" }
 }
 
 #-------------Compute subnet, NAT GW, routing and interfaces ----------------------------------------
 
 resource "aws_subnet" "compute_nat_subnet" {
-    availability_zone = var.options.cfg.aws.availability_zone
-    cidr_block = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 1)
-    vpc_id = aws_vpc.main-vpc.id
-    tags = {"Name" = "CML-compute-nat-${var.options.rand_id}"}
-    count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  availability_zone = var.options.cfg.aws.availability_zone
+  cidr_block        = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 1)
+  vpc_id            = aws_vpc.main-vpc.id
+  tags              = { "Name" = "CML-compute-nat-${var.options.rand_id}" }
+  count             = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_eip" "nat_eip" {
   tags = {
     Name = "CML-compute-nat-gw-eip-${var.options.rand_id}"
   }
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 resource "aws_nat_gateway" "compute_nat_gw" {
-  allocation_id = aws_eip.nat_eip[0].id  // Allocate an EIP 
-  subnet_id     = aws_subnet.public_subnet.id 
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0
+  allocation_id = aws_eip.nat_eip[0].id // Allocate an EIP 
+  subnet_id     = aws_subnet.public_subnet.id
+  count         = var.options.cfg.cluster.enable_cluster ? 1 : 0
   tags = {
     Name = "CML-compute-nat-gw-${var.options.rand_id}"
   }
@@ -296,127 +296,127 @@ resource "aws_route_table" "compute_route_table" {
   vpc_id = aws_vpc.main-vpc.id
 
   route {
-    cidr_block = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.compute_nat_gw[0].id 
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.compute_nat_gw[0].id
   }
   tags = {
     Name = "CML-cluster-rt-${var.options.rand_id}"
   }
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_route_table_association" "compute_subnet_assoc" {
-  subnet_id      = aws_subnet.compute_nat_subnet[0].id 
+  subnet_id      = aws_subnet.compute_nat_subnet[0].id
   route_table_id = aws_route_table.compute_route_table[0].id
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  count          = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_network_interface" "nat_int_cml_compute" {
-    subnet_id = aws_subnet.compute_nat_subnet[0].id
-    security_groups = [ aws_security_group.sg-tf.id ]
-    tags = {Name = "CML-compute-${count.index+1}-nat-int-${var.options.rand_id}"}
-    count = var.options.cfg.cluster.number_of_compute_nodes
+  subnet_id       = aws_subnet.compute_nat_subnet[0].id
+  security_groups = [aws_security_group.sg-tf.id]
+  tags            = { Name = "CML-compute-${count.index + 1}-nat-int-${var.options.rand_id}" }
+  count           = var.options.cfg.cluster.number_of_compute_nodes
 }
 
 #-------------Cluster Subnet and interface----------------------------------------
 
 resource "aws_subnet" "cluster_subnet" {
-    availability_zone = var.options.cfg.aws.availability_zone
-    cidr_block = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 255)
-    ipv6_cidr_block = cidrsubnet(aws_vpc.main-vpc.ipv6_cidr_block, 8, 1) 
-    vpc_id = aws_vpc.main-vpc.id
-    tags = {"Name" = "CML-cluster-${var.options.rand_id}"}
-    count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
-    assign_ipv6_address_on_creation = true 
+  availability_zone               = var.options.cfg.aws.availability_zone
+  cidr_block                      = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 255)
+  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main-vpc.ipv6_cidr_block, 8, 1)
+  vpc_id                          = aws_vpc.main-vpc.id
+  tags                            = { "Name" = "CML-cluster-${var.options.rand_id}" }
+  count                           = var.options.cfg.cluster.enable_cluster ? 1 : 0
+  assign_ipv6_address_on_creation = true
 }
 
 resource "aws_network_interface" "cluster_int_cml" {
-    subnet_id = aws_subnet.cluster_subnet[0].id
-    security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
-    tags = {Name = "CML-controller-cluster-int-${var.options.rand_id}"}
-    count = var.options.cfg.cluster.enable_cluster ? 1 : 0
+  subnet_id       = aws_subnet.cluster_subnet[0].id
+  security_groups = [aws_security_group.sg-tf-cluster-int.id]
+  tags            = { Name = "CML-controller-cluster-int-${var.options.rand_id}" }
+  count           = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_network_interface" "cluster_int_cml_compute" {
-    subnet_id = aws_subnet.cluster_subnet[0].id
-    security_groups = [ aws_security_group.sg-tf-cluster-int.id ]
-    tags = {Name = "CML-compute-${count.index+1}-cluster-int-${var.options.rand_id}"}
-    count = var.options.cfg.cluster.number_of_compute_nodes 
+  subnet_id       = aws_subnet.cluster_subnet[0].id
+  security_groups = [aws_security_group.sg-tf-cluster-int.id]
+  tags            = { Name = "CML-compute-${count.index + 1}-cluster-int-${var.options.rand_id}" }
+  count           = var.options.cfg.cluster.number_of_compute_nodes
 }
 
 ### IPv6 mcast support for CML clustering
 
 resource "aws_ec2_transit_gateway" "transit_gateway" {
-  description = "CML Transit Gateway"
-  multicast_support = "enable"
+  description                     = "CML Transit Gateway"
+  multicast_support               = "enable"
   default_route_table_association = "disable"
   default_route_table_propagation = "disable"
-  dns_support = "disable"
-  vpn_ecmp_support = "disable"
-  tags        = {
+  dns_support                     = "disable"
+  vpn_ecmp_support                = "disable"
+  tags = {
     Name = "CML-tgw-${var.options.rand_id}"
   }
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_ec2_transit_gateway_multicast_domain" "cml_mcast_domain" {
-  transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[0].id
-  igmpv2_support = "enable"
-  auto_accept_shared_associations="enable"
+  transit_gateway_id              = aws_ec2_transit_gateway.transit_gateway[0].id
+  igmpv2_support                  = "enable"
+  auto_accept_shared_associations = "enable"
   tags = {
     Name = "CML-mcast-domain-${var.options.rand_id}"
   }
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "vpc_attachment" {
   transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[0].id
   vpc_id             = aws_vpc.main-vpc.id
-  subnet_ids         = [aws_subnet.cluster_subnet[0].id] 
+  subnet_ids         = [aws_subnet.cluster_subnet[0].id]
   ipv6_support       = "enable"
-  tags               = {
+  tags = {
     Name = "CML-tgw-vpc-attachment-${var.options.rand_id}"
   }
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  count = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_ec2_transit_gateway_multicast_domain_association" "cml_association" {
-  transit_gateway_attachment_id      = aws_ec2_transit_gateway_vpc_attachment.vpc_attachment[count.index].id
+  transit_gateway_attachment_id       = aws_ec2_transit_gateway_vpc_attachment.vpc_attachment[count.index].id
   transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain.cml_mcast_domain[count.index].id
   subnet_id                           = aws_subnet.cluster_subnet[count.index].id
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  count                               = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_ec2_transit_gateway_multicast_group_member" "cml_controller_int" {
   group_ip_address                    = "ff02::fb"
   network_interface_id                = aws_network_interface.cluster_int_cml[count.index].id
   transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain_association.cml_association[count.index].transit_gateway_multicast_domain_id
-  count = var.options.cfg.cluster.enable_cluster ? 1 : 0 
+  count                               = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
 
 resource "aws_ec2_transit_gateway_multicast_group_member" "cml_compute_int" {
   group_ip_address                    = "ff02::fb"
   network_interface_id                = aws_network_interface.cluster_int_cml_compute[count.index].id
   transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain_association.cml_association[0].transit_gateway_multicast_domain_id
-  count = var.options.cfg.cluster.number_of_compute_nodes
+  count                               = var.options.cfg.cluster.number_of_compute_nodes
 }
 
 resource "aws_instance" "cml-controller" {
-  instance_type          = var.options.cfg.aws.flavor
-  ami                    = data.aws_ami.ubuntu.id
-  iam_instance_profile   = var.options.cfg.aws.profile
-  key_name               = var.options.cfg.common.key_name
-  tags                   = {Name = "CML-controller-${var.options.rand_id}"}
-  ebs_optimized          = "true"
-  dynamic instance_market_options {
-        for_each = var.options.cfg.aws.spot_instances.use_spot_for_controller ? [1] : [] 
-        content {  
-          market_type = "spot"
-          spot_options {
-              instance_interruption_behavior = "stop"
-              spot_instance_type = "persistent"
-            }
-          }
+  instance_type        = var.options.cfg.aws.flavor
+  ami                  = data.aws_ami.ubuntu.id
+  iam_instance_profile = var.options.cfg.aws.profile
+  key_name             = var.options.cfg.common.key_name
+  tags                 = { Name = "CML-controller-${var.options.rand_id}" }
+  ebs_optimized        = "true"
+  dynamic "instance_market_options" {
+    for_each = var.options.cfg.aws.spot_instances.use_spot_for_controller ? [1] : []
+    content {
+      market_type = "spot"
+      spot_options {
+        instance_interruption_behavior = "stop"
+        spot_instance_type             = "persistent"
+      }
+    }
   }
   root_block_device {
     volume_size = var.options.cfg.common.disk_size
@@ -424,38 +424,38 @@ resource "aws_instance" "cml-controller" {
     encrypted   = var.options.cfg.aws.enable_ebs_encryption
   }
   network_interface {
-        network_interface_id = aws_network_interface.pub_int_cml.id
-        device_index = 0
-  } 
-  dynamic network_interface {
-        for_each = var.options.cfg.cluster.enable_cluster ? [1] : []
-        content {
-           network_interface_id = aws_network_interface.cluster_int_cml[0].id
-           device_index = 1
-        }
-  } 
+    network_interface_id = aws_network_interface.pub_int_cml.id
+    device_index         = 0
+  }
+  dynamic "network_interface" {
+    for_each = var.options.cfg.cluster.enable_cluster ? [1] : []
+    content {
+      network_interface_id = aws_network_interface.cluster_int_cml[0].id
+      device_index         = 1
+    }
+  }
   user_data = data.cloudinit_config.cml_controller.rendered
 }
 
 
 resource "aws_instance" "cml-compute" {
-  instance_type          = var.options.cfg.aws.flavor
-  ami                    = data.aws_ami.ubuntu.id
-  iam_instance_profile   = var.options.cfg.aws.profile
-  key_name               = var.options.cfg.common.key_name
-  tags                   = {Name = "CML-compute-${count.index+1}-${var.options.rand_id}"}
-  ebs_optimized          = "true"
-  count                  = var.options.cfg.cluster.number_of_compute_nodes
-  depends_on             = [aws_instance.cml-controller]
-  dynamic instance_market_options {
-        for_each = var.options.cfg.aws.spot_instances.use_spot_for_computes ? [1] : [] 
-        content {  
-          market_type = "spot"
-          spot_options {
-              instance_interruption_behavior = "stop"
-              spot_instance_type = "persistent"
-            }
-          }
+  instance_type        = var.options.cfg.aws.flavor
+  ami                  = data.aws_ami.ubuntu.id
+  iam_instance_profile = var.options.cfg.aws.profile
+  key_name             = var.options.cfg.common.key_name
+  tags                 = { Name = "CML-compute-${count.index + 1}-${var.options.rand_id}" }
+  ebs_optimized        = "true"
+  count                = var.options.cfg.cluster.number_of_compute_nodes
+  depends_on           = [aws_instance.cml-controller]
+  dynamic "instance_market_options" {
+    for_each = var.options.cfg.aws.spot_instances.use_spot_for_computes ? [1] : []
+    content {
+      market_type = "spot"
+      spot_options {
+        instance_interruption_behavior = "stop"
+        spot_instance_type             = "persistent"
+      }
+    }
   }
   root_block_device {
     volume_size = var.options.cfg.cluster.compute_disk_size
@@ -463,13 +463,13 @@ resource "aws_instance" "cml-compute" {
     encrypted   = var.options.cfg.aws.enable_ebs_encryption
   }
   network_interface {
-        network_interface_id = aws_network_interface.nat_int_cml_compute[count.index].id
-        device_index = 0
-  } 
+    network_interface_id = aws_network_interface.nat_int_cml_compute[count.index].id
+    device_index         = 0
+  }
   network_interface {
-           network_interface_id = aws_network_interface.cluster_int_cml_compute[count.index].id
-           device_index = 1
-  } 
+    network_interface_id = aws_network_interface.cluster_int_cml_compute[count.index].id
+    device_index         = 1
+  }
   user_data = data.cloudinit_config.cml_compute[count.index].rendered
 }
 
@@ -491,7 +491,7 @@ data "aws_ami" "ubuntu" {
 
 data "cloudinit_config" "cml_controller" {
   gzip          = true
-  base64_encode = true  # always true if gzip is true
+  base64_encode = true # always true if gzip is true
 
   part {
     filename     = "userdata.txt"
@@ -503,13 +503,13 @@ data "cloudinit_config" "cml_controller" {
   part {
     filename     = "cloud-config.yaml"
     content_type = "text/cloud-config"
-    content = local.cloud_config
+    content      = local.cloud_config
   }
 }
 
 data "cloudinit_config" "cml_compute" {
   gzip          = true
-  base64_encode = true  # always true if gzip is true
+  base64_encode = true # always true if gzip is true
   count         = var.options.cfg.cluster.number_of_compute_nodes
   part {
     filename     = "userdata.txt"
