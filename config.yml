@@ -10,10 +10,16 @@ target: aws
 
 aws:
   region: us-east-1
+  availability_zone: us-east-1a
   bucket: bucket-name-goes-here
   # flavor: c5.2xlarge
   flavor: m5zn.metal
   profile: permission-profile-goes-here
+  public_vpc_ipv4_cidr: 10.0.0.0/16
+  enable_ebs_encryption: false
+  spot_instances:
+    use_spot_for_controller: false
+    use_spot_for_computes: false
 
 azure:
   resource_group: resource-group-name
@@ -23,15 +29,24 @@ azure:
 
 common:
   disk_size: 64
-  hostname: cml-controller
+  controller_hostname: cml-controller
   key_name: ssh-key-name
+  allowed_ipv4_subnets: ["0.0.0.0/0"]
+
+cluster:
+  enable_cluster: false
+  secret: your-secret-password
+  allow_vms_on_controller: true
+  number_of_compute_nodes: 0
+  compute_hostname_prefix: cml-compute
+  compute_disk_size: 32
 
 app:
   user: admin
   pass: your-secret-password
   # need to escape special chars:
   # pass: '\"!@$%'
-  deb: cml2_2.6.1-11_amd64.deb
+  deb: cml2_2.7.0-4_amd64.deb
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
   customize:

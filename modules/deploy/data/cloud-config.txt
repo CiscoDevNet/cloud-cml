@@ -2,7 +2,7 @@
 package_update: true
 package_upgrade: true
 
-hostname: ${cfg.common.hostname}
+hostname: ${hostname}
 manage_etc_hosts: true
 
 packages:
@@ -29,6 +29,16 @@ write_files:
     permissions: "0700"
     content: |
       ${indent(6, del)}
+  - path: /provision/interface_fix.py
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, interface_fix)}
+  - path: /etc/virl2-base-config.yml
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${indent(6, format("%s\n", cml-config))}
   %{ for script in cfg.app.customize }
   - path: /provision/${script}
     owner: root:root
