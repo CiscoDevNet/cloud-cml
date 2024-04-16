@@ -5,7 +5,7 @@
 #
 
 locals {
-  cfg    = yamldecode(file(var.cfg_file))
+  cfg = yamldecode(file(var.cfg_file))
   extras = var.cfg_extra_vars == null ? "" : (
     fileexists(var.cfg_extra_vars) ? file(var.cfg_extra_vars) : var.cfg_extra_vars
   )

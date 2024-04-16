@@ -18,7 +18,6 @@ import os
 from virl2_client import ClientLibrary
 
 password = os.getenv("CFG_APP_PASS", "")
-# client = ClientLibrary("https://cml.mine.nu", "admin", password)
 client = ClientLibrary("https://localhost", "admin", password, ssl_verify=False)
 
 print(client)

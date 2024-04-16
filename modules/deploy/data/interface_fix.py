@@ -69,17 +69,22 @@ def update_virl2_config(virl2_config_file, primary_interface, cluster_interface=
         yaml.safe_dump(virl2_data, f)
 
 
-# Configuration paths
-netplan_file = "/etc/netplan/50-cloud-init.yaml"
-virl2_config_file = "/etc/virl2-base-config.yml"
+def main():
+    # Configuration paths
+    netplan_file = "/etc/netplan/50-cloud-init.yaml"
+    virl2_config_file = "/etc/virl2-base-config.yml"
 
-# Get interface names
-interface_names = get_interface_names(netplan_file)
+    # Get interface names
+    interface_names = get_interface_names(netplan_file)
 
-# Update Netplan config
-update_netplan_config(netplan_file)
+    # Update Netplan config
+    update_netplan_config(netplan_file)
 
-# Update VIRL2 config
-primary_interface = interface_names[0]
-cluster_interface = interface_names[1] if len(interface_names) > 1 else None
-update_virl2_config(virl2_config_file, primary_interface, cluster_interface)
+    # Update VIRL2 config
+    primary_interface = interface_names[0]
+    cluster_interface = interface_names[1] if len(interface_names) > 1 else None
+    update_virl2_config(virl2_config_file, primary_interface, cluster_interface)
+
+
+if __name__ == "__main__":
+    main()

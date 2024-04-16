@@ -9,5 +9,5 @@ output "public_ip" {
 }
 
 output "sas_token" {
-	value = data.azurerm_storage_account_sas.cml.sas
+  value = data.azurerm_storage_account_sas.cml.sas
 }

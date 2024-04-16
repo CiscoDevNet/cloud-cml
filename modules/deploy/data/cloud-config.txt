@@ -38,7 +38,7 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: |
-      ${indent(6, format("%s\n", cml-config))}
+      ${indent(6, format("%s\n", cml_config))}
   %{ for script in cfg.app.customize }
   - path: /provision/${script}
     owner: root:root

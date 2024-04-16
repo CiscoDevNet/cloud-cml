@@ -14,16 +14,30 @@ locals {
     }
   )
 
+  cml_config_controller = templatefile("${path.module}/../data/virl2-base-config.yml", {
+    hostname      = var.options.cfg.common.controller_hostname,
+    is_controller = true
+    is_compute    = !var.options.cfg.cluster.enable_cluster || var.options.cfg.cluster.allow_vms_on_controller
+    cfg = merge(
+      var.options.cfg,
+      { sas_token = data.azurerm_storage_account_sas.cml.sas }
+    )
+    }
+  )
+
   # Ensure there's no tabs in the template file! Also ensure that the list of
   # reference platforms has no single quotes in the file names or keys (should
   # be reasonable, but you never know...)
   cloud_config = templatefile("${path.module}/../data/cloud-config.txt", {
-    vars     = local.vars
-    cfg      = var.options.cfg
-    copyfile = var.options.copyfile
-    del      = var.options.del
-    extras   = var.options.extras
-    path     = path.module
+    vars          = local.vars
+    cml_config    = local.cml_config_controller
+    cfg           = var.options.cfg
+    copyfile      = var.options.copyfile
+    del           = var.options.del
+    interface_fix = var.options.interface_fix
+    extras        = var.options.extras
+    hostname      = var.options.cfg.common.controller_hostname
+    path          = path.module
   })
 
   # vmname     = "cml-${var.options.rand_id}"
@@ -166,7 +180,7 @@ resource "azurerm_network_interface_security_group_association" "cml" {
 }
 
 resource "azurerm_linux_virtual_machine" "cml" {
-  name                = var.options.cfg.common.hostname
+  name                = var.options.cfg.common.controller_hostname
   resource_group_name = data.azurerm_resource_group.cml.name
   location            = data.azurerm_resource_group.cml.location
 
@@ -230,7 +244,7 @@ data "azurerm_ssh_public_key" "cml" {
 
 data "cloudinit_config" "azure_ud" {
   gzip          = true
-  base64_encode = true  # always true if gzip is true
+  base64_encode = true # always true if gzip is true
 
   part {
     filename     = "userdata.txt"

@@ -21,10 +21,10 @@ locals {
     }
   )
 
-  cml-config-controller = templatefile("${path.module}/../data/virl2-base-config.yml", {
+  cml_config_controller = templatefile("${path.module}/../data/virl2-base-config.yml", {
     hostname      = var.options.cfg.common.controller_hostname,
     is_controller = true
-    is_compute    = var.options.cfg.cluster.allow_vms_on_controller
+    is_compute    = !var.options.cfg.cluster.enable_cluster || var.options.cfg.cluster.allow_vms_on_controller
     cfg = merge(
       var.options.cfg,
       # Need to have this as it's referenced in the template.
@@ -34,7 +34,7 @@ locals {
     }
   )
 
-  cml-config-compute = [for compute_hostname in local.compute_hostnames : templatefile("${path.module}/../data/virl2-base-config.yml", {
+  cml_config_compute = [for compute_hostname in local.compute_hostnames : templatefile("${path.module}/../data/virl2-base-config.yml", {
     hostname      = compute_hostname,
     is_controller = false,
     is_compute    = true,
@@ -52,7 +52,7 @@ locals {
   # be reasonable, but you never know...)
   cloud_config = templatefile("${path.module}/../data/cloud-config.txt", {
     vars          = local.vars
-    cml-config    = local.cml-config-controller
+    cml_config    = local.cml_config_controller
     cfg           = var.options.cfg
     copyfile      = var.options.copyfile
     del           = var.options.del
@@ -64,7 +64,7 @@ locals {
 
   cloud_config_compute = [for i in range(0, var.options.cfg.cluster.number_of_compute_nodes) : templatefile("${path.module}/../data/cloud-config.txt", {
     vars          = local.vars
-    cml-config    = local.cml-config-compute[i]
+    cml_config    = local.cml_config_compute[i]
     cfg           = var.options.cfg
     copyfile      = var.options.copyfile
     del           = var.options.del
@@ -401,7 +401,7 @@ resource "aws_ec2_transit_gateway_multicast_group_member" "cml_compute_int" {
   count                               = var.options.cfg.cluster.number_of_compute_nodes
 }
 
-resource "aws_instance" "cml-controller" {
+resource "aws_instance" "cml_controller" {
   instance_type        = var.options.cfg.aws.flavor
   ami                  = data.aws_ami.ubuntu.id
   iam_instance_profile = var.options.cfg.aws.profile
@@ -446,7 +446,7 @@ resource "aws_instance" "cml-compute" {
   tags                 = { Name = "CML-compute-${count.index + 1}-${var.options.rand_id}" }
   ebs_optimized        = "true"
   count                = var.options.cfg.cluster.number_of_compute_nodes
-  depends_on           = [aws_instance.cml-controller]
+  depends_on           = [aws_instance.cml_controller]
   dynamic "instance_market_options" {
     for_each = var.options.cfg.aws.spot_instances.use_spot_for_computes ? [1] : []
     content {

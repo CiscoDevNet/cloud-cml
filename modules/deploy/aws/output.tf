@@ -5,9 +5,9 @@
 #
 
 output "public_ip" {
-  value = "${aws_instance.cml-controller.public_ip}"
+  value = aws_instance.cml_controller.public_ip
 }
 
 output "sas_token" {
-	value = "undefined"
+  value = "undefined"
 }
