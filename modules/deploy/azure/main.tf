@@ -95,7 +95,7 @@ resource "azurerm_network_security_group" "cml" {
   resource_group_name = data.azurerm_resource_group.cml.name
 }
 
-resource "azurerm_network_security_rule" "cml-std" {
+resource "azurerm_network_security_rule" "cml_std" {
   name                        = "cml-std-in"
   priority                    = 100
   direction                   = "Inbound"
@@ -109,8 +109,8 @@ resource "azurerm_network_security_rule" "cml-std" {
   network_security_group_name = azurerm_network_security_group.cml.name
 }
 
-resource "azurerm_network_security_rule" "cml-patty-tcp" {
-  count                       = var.options.use_patty ? 1 : 0
+resource "azurerm_network_security_rule" "cml_patty_tcp" {
+  count                       = var.options.cfg.common.enable_patty ? 1 : 0
   name                        = "patty-tcp-in"
   priority                    = 200
   direction                   = "Inbound"
@@ -124,8 +124,8 @@ resource "azurerm_network_security_rule" "cml-patty-tcp" {
   network_security_group_name = azurerm_network_security_group.cml.name
 }
 
-resource "azurerm_network_security_rule" "cml-patty-udp" {
-  count                       = var.options.use_patty ? 1 : 0
+resource "azurerm_network_security_rule" "cml_patty_udp" {
+  count                       = var.options.cfg.common.enable_patty ? 1 : 0
   name                        = "patty-udp-in"
   priority                    = 300
   direction                   = "Inbound"
@@ -208,6 +208,10 @@ resource "azurerm_linux_virtual_machine" "cml" {
   # Standard_D64d_v4	64	256	2400	32	300000/4000	8	30000
 
   size = var.options.cfg.azure.size
+
+  # uncomment this block for diagnostics and serial console access to the VM
+  # boot_diagnostics {
+  # }
 
   admin_username = "ubuntu"
   network_interface_ids = [

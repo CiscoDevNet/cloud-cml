@@ -25,9 +25,6 @@ function setup_pre_azure() {
 
 function base_setup() {
     CONFIG_FILE="/etc/virl2-base-config.yml"
-    # copy Debian package from cloud storage into our instance
-    copyfile ${CFG_APP_DEB} /provision/
-
     if [[ -r "$CONFIG_FILE" ]]; then
         # Check if this device is a controller
         if grep -qi "is_controller: true" "$CONFIG_FILE"; then
@@ -63,21 +60,35 @@ function base_setup() {
         fi
     fi
 
+    # copy CML distribution package from cloud storage into our instance, unpack & install
+    copyfile ${CFG_APP_SOFTWARE} /provision/
+    tar xvf /provision/${CFG_APP_SOFTWARE} --wildcards -C /tmp 'cml2*_amd64.deb' 'patty*_amd64.deb' 'iol-tools*_amd64.deb'
     systemctl stop ssh
-    apt-get install -y /provision/${CFG_APP_DEB}
+    apt-get install -y /tmp/*.deb
     # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
     /provision/interface_fix.py
     sed -i 's/^unmanaged-devices=.*/unmanaged-devices=none/' /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
     systemctl restart network-manager
     netplan apply
-    # Fix for the headless setup (tty remove)
+    # Fix for the headless setup (tty remove as the cloud VM has none)
     sed -i '/^Standard/ s/^/#/' /lib/systemd/system/virl2-initial-setup.service
     touch /etc/.virl2_unconfigured
     systemctl stop getty@tty1.service
     systemctl enable --now virl2-initial-setup.service
+    # for good measure, apply the network config again
     netplan apply
     systemctl enable --now ssh.service
     systemctl start getty@tty1.service
+
+    # clean up software .pkg / .deb packages
+    rm /provision/*.pkg /provision/*.deb /tmp/*.deb
+
+    # enable and configure PaTTY
+    if [ "${CFG_COMMON_ENABLE_PATTY}" = "true" ]; then
+        GWDEV=$(ip -json route | jq -r '.[]|select(.dst=="default")|.dev')
+        echo "OPTS=\"-bridge $GWDEV -poll 5\"" >>/etc/default/patty.env
+        systemctl enable --now virl2-patty
+    fi
 
     # AWS specific (?):
     # For troubleshooting. To allow console access on AWS, the root user needs a
@@ -90,22 +101,6 @@ function cml_configure() {
     CONFIG_FILE="/etc/virl2-base-config.yml"
     API="http://ip6-localhost:8001/api/v0"
 
-    # Create system user
-    #/usr/sbin/useradd --badname -m -s /bin/bash ${CFG_SYS_USER}
-    #echo "${CFG_SYS_USER}:${CFG_SYS_PASS}" | /usr/sbin/chpasswd
-    #/usr/sbin/usermod -a -G sudo ${CFG_SYS_USER}
-
-    # Move SSH config from default cloud-provisioned user to new user. This
-    # also disables the login for this user by removing the SSH key.
-    # Technically, this could be the same user as Azure allows to set the
-    # user name
-    # if [ "$target" = "aws" ]; then
-    #     clouduser="ubuntu"
-    # elif [ "$target" = "azure" ]; then
-    #     clouduser="adminuser"
-    # else
-    #     echo "unknown target"
-    # fi
     clouduser="ubuntu"
     if [[ -d /home/${CFG_SYS_USER}/.ssh ]]; then
         # Directory exists - Move individual files within .ssh
@@ -137,23 +132,10 @@ function cml_configure() {
         sleep 5
     done
 
-    # --- Not required since passwords are provided in the virl2-base-config.yml
-    # Get auth token
-    #PASS=$(cat /etc/machine-id)
-    #TOKEN=$(echo '{"username":"cml2","password":"'$PASS'"}' \ |
-    #    curl -s -d@- $API/authenticate | jq -r)
-    #[ "$TOKEN" != "Authentication failed!" ] || { echo $TOKEN; exit 1; }
+    # TODO: the licensing should use the PCL -- it's there, and it can do it
+    # via a small Python script
 
-    # Change to provided name and password
-    #curl -s -X "PATCH" \
-    #    "$API/users/00000000-0000-4000-a000-000000000000" \
-    #    -H "Authorization: Bearer $TOKEN" \
-    #    -H "accept: application/json" \
-    #    -H "Content-Type: application/json" \
-    #    -d '{"username":"'${CFG_APP_USER}'","password":{"new_password":"'${CFG_APP_PASS}'","old_password":"'$PASS'"}}'
-    # --- Not required since passwords are provided in the virl2-base-config.yml
-
-    # Re-auth with new password
+    # Acquire a token
     TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \  |
         curl -s -d@- $API/authenticate | jq -r)
 
@@ -164,9 +146,6 @@ function cml_configure() {
         -H "accept: application/json" \
         -H "Content-Type: application/json" \
         -d '"'${CFG_LICENSE_FLAVOR}'"'
-
-    # We want to see what happens
-    # set -x
 
     # licensing, register w/ SSM and check result/compliance
     attempts=5

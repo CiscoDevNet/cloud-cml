@@ -18,7 +18,8 @@ import os
 from virl2_client import ClientLibrary
 
 password = os.getenv("CFG_APP_PASS", "")
-client = ClientLibrary("https://localhost", "admin", password, ssl_verify=False)
+hostname = os.getenv("CFG_COMMON_HOSTNAME", "")
+client = ClientLibrary(f"https://{hostname}", "admin", password, ssl_verify=False)
 
 print(client)
 
@@ -47,6 +48,6 @@ for id in range(0, USER_COUNT + 1):
 EOF
 
 export HOME=/var/local/virl2
-export CFG_APP_PASS CFG_HN
+export CFG_APP_PASS CFG_COMMON_HOSTNAME
 python3 $HOME/users.py
 

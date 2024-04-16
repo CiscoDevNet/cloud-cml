@@ -16,7 +16,6 @@ locals {
     del           = file("${path.module}/data/del.sh")
     interface_fix = file("${path.module}/data/interface_fix.py")
     extras        = var.extras
-    use_patty     = length(regexall("patty\\.sh", join(" ", var.cfg.app.customize))) > 0
     rand_id       = random_id.id.hex
   }
 }

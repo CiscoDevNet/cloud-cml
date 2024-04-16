@@ -179,7 +179,7 @@ resource "aws_security_group" "sg-tf" {
       "self" : false,
     }
   ]
-  ingress = var.options.use_patty ? concat(local.cml_ingress, local.cml_patty_range) : local.cml_ingress
+  ingress = var.options.cfg.common.enable_patty ? concat(local.cml_ingress, local.cml_patty_range) : local.cml_ingress
 }
 
 resource "aws_security_group" "sg-tf-cluster-int" {
