@@ -15,11 +15,23 @@ cat >/var/local/virl2/users.py <<EOF
 #!/usr/bin/env python3
 
 import os
+from time import sleep
+from httpx import HTTPStatusError
 from virl2_client import ClientLibrary
 
 password = os.getenv("CFG_APP_PASS", "")
 hostname = os.getenv("CFG_COMMON_HOSTNAME", "")
-client = ClientLibrary(f"https://{hostname}", "admin", password, ssl_verify=False)
+
+attempts = 6
+while attempts > 0:
+    try:
+        client = ClientLibrary(f"https://{hostname}", "admin", password, ssl_verify=False)
+    except HTTPStatusError as exc:
+        print(exc)
+        sleep(10)
+        attempts -= 1
+    else:
+        break
 
 print(client)
 

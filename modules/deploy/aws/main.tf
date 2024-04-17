@@ -439,7 +439,7 @@ resource "aws_instance" "cml_controller" {
 
 
 resource "aws_instance" "cml-compute" {
-  instance_type        = var.options.cfg.aws.flavor
+  instance_type        = var.options.cfg.aws.flavor_compute
   ami                  = data.aws_ami.ubuntu.id
   iam_instance_profile = var.options.cfg.aws.profile
   key_name             = var.options.cfg.common.key_name

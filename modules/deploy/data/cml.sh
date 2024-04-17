@@ -75,18 +75,40 @@ function base_setup() {
     touch /etc/.virl2_unconfigured
     systemctl stop getty@tty1.service
     systemctl enable --now virl2-initial-setup.service
+
+    # this should not be needed in cloud!?
+    # systemctl start getty@tty1.service
+
+    # We need to wait until the initial setup is done
+    attempts=5
+    while [ $attempts -gt 0 ]; do
+        if systemctl show virl2-initial-setup.service | grep -qi 'SubState=exited'; then
+            echo "initial setup is done"
+            break
+        fi
+        echo "waiting for initial setup..."
+        sleep 5
+        ((attempts--))
+    done
+
+    if [ $attempts -eq 0 ]; then
+        echo "initial setup did not finish in time... something went wrong!"
+        exit 1
+    fi
+
     # for good measure, apply the network config again
     netplan apply
     systemctl enable --now ssh.service
-    systemctl start getty@tty1.service
 
     # clean up software .pkg / .deb packages
-    rm /provision/*.pkg /provision/*.deb /tmp/*.deb
+    rm -f /provision/*.pkg /provision/*.deb /tmp/*.deb
 
     # enable and configure PaTTY
     if [ "${CFG_COMMON_ENABLE_PATTY}" = "true" ]; then
         GWDEV=$(ip -json route | jq -r '.[]|select(.dst=="default")|.dev')
         echo "OPTS=\"-bridge $GWDEV -poll 5\"" >>/etc/default/patty.env
+        sed -i '/^After/iWants=virl2-patty.service' /lib/systemd/system/virl2.target
+        systemctl daemon-reload
         systemctl enable --now virl2-patty
     fi
 

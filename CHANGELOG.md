@@ -2,6 +2,21 @@
 
 Lists the changes for the tool releases.
 
+## Version 0.3.0
+
+- allow cluster deployments on AWS
+  - this also now uses a non-default VPC (fixes #9)
+  - this also allows to enable EBS encryption (fixes #8)
+  a `cluster` section has been added to the config file.  Some keywords
+  have changed (`hostname` -> `controller_hostname`).  See also a new
+  "Cluster" section in the [AWS documentation](documentation/AWS.md)
+- use the CML .pkg software distribution file instead of multiple .deb packages
+  (this is a breaking change -- you need to change the configuration and upload
+  the .pkg to cloud storage instead of the .deb. `deb` -> `software`
+- the PaTTY customization script has been removed.  PaTTY is included in the
+  .pkg. Its installation and configuration is now controller by a new keyword
+  `enable_patty` in the `common` section of the config.
+
 ## Version 0.2.1
 
 - allow to select provider using a script and split out TF providers

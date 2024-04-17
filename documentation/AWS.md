@@ -1,6 +1,6 @@
 # AWS
 
-Version 0.2.1, December 18 2023
+Version 0.3.0, April 17 2023
 
 This document contains specific configuration steps to deploy a CML instance in AWS. Some sections from the top level document are repeated here with additional detail regarding AWS.
 
@@ -33,15 +33,16 @@ Some of the steps and procedures outlined below are preparation steps and only n
 
 Terraform can be downloaded for free from [here](https://developer.hashicorp.com/terraform/downloads). This site has also instructions how to install it on various supported platforms.
 
-Deployments of CML using Terraform were tested using version 1.4.6 on Ubuntu Linux.
+Deployments of CML using Terraform were tested using version 1.8.0 on macOS.
 
 ```plain
 $ terraform version
-Terraform v1.4.6
-on linux_amd64
-+ provider registry.terraform.io/ciscodevnet/cml2 v0.6.2
-+ provider registry.terraform.io/hashicorp/aws v4.67.0
-+ provider registry.terraform.io/hashicorp/random v3.5.1
+Terraform v1.8.0
+on darwin_arm64
++ provider registry.terraform.io/ciscodevnet/cml2 v0.7.0
++ provider registry.terraform.io/hashicorp/aws v5.45.0
++ provider registry.terraform.io/hashicorp/cloudinit v2.3.3
++ provider registry.terraform.io/hashicorp/random v3.6.1
 $
 ```
 
@@ -55,7 +56,7 @@ The AWS CLI can be downloaded from [here](https://docs.aws.amazon.com/cli/latest
 
 ```plain
 $ aws --version
-aws-cli/2.10.4 Python/3.9.11 Linux/5.19.0-40-generic exe/x86_64.ubuntu.22 prompt/off
+aws-cli/2.15.38 Python/3.11.9 Darwin/23.4.0 source/arm64 prompt/off
 $
 ```
 
@@ -67,7 +68,8 @@ If you need to use a proxy to access AWS then define it using environment variab
 
 This section describes the resources required by the provisioning scripts to successfully deploy CML on AWS. These configurations and policies need to be created prior to using the tooling. This can be done on the AWS console or via the preferred deployment method (e.g. also via Terraform).
 
-> **Note:** There's also a [video on YouTube](https://youtu.be/vzgUyO-GQio) which shows all the steps outlined below.
+> [!NOTE]
+> There's also a [video on YouTube](https://youtu.be/vzgUyO-GQio) which shows all the steps outlined below.
 
 ### IAM user and group
 
@@ -107,7 +109,8 @@ To create the policy, go to "Policies", then click "Create policy". There select
 
 Replace "bucket-name" to the bucket name of your S3 bucket. This permits Read/Write and List access to the specified bucket and all objects within that bucket.
 
-> **Note:** This could be further tightened by removing the "PutObject" action from the policy as the EC2 instance / the CML controller only needs read access ("GetObject") and not write access access ("PutObject"). However, to upload images into the bucket, the write access is required at least initially.
+> [!NOTE]
+> This could be further tightened by removing the "PutObject" action from the policy as the EC2 instance / the CML controller only needs read access ("GetObject") and not write access access ("PutObject"). However, to upload images into the bucket, the write access is required at least initially.
 
 Click "Next" and provide a policy name, "cml-s3-access" for example. Finally, click "Create policy".
 
@@ -211,15 +214,15 @@ This access key and the associated secret key must be provided to the AWS Terraf
 
 The below screen shot shows an example of such a user with the required permission policies highlighted where the name of the user is "cml_terraform". Note that the required permission policies are listed. They are inherited from the "terraform" group. There's also an access key that has been created for this user.
 
-![image-20230810161432721](/images/permissions.png)
+![image-20230810161432721](../images/permissions.png)
 
 This role that is passed ("s3-access-for-ec2") is then configured in the `config.yml` attribute 'aws.profile'.
 
-![image-20230810162352026](/images/perm-details.png)
+![image-20230810162352026](../images/perm-details.png)
 
 The following diagram outlines the relation between the various IAM elements:
 
-![image](/images/policies.png)
+![image](../images/policies.png)
 
 ### Other resources
 
@@ -313,13 +316,12 @@ Within the app section, the following keys must be set with the correct values:
 There are currently two scripts provided for CML instance customization.
 
 1. Patch VMX. The `00-patch_vmx.sh` script disables/bypasses the VMX CPU flag check. This allows to run some reference platforms on non-metal AWS instance flavors. This limits the list of nodes that actually work quite significantly and is not supported. Use at your own risk.
-2. PATty. The `01-patty.sh` script installs the PATty package. The package must be present in the bucket at the top level. It is experimental at this point in time. The name of the Debian package is hard-coded into the script (this package is currently not available publicly).
+2. Let's Encrypt.  The `03-letsencrypt.sh` script copies a cert from storage if it exists and matches the configured hostname.  If not, it requests one via the Let's Encrypt service.  For this to work, it needs to have a valid hostname in DNS.  The script uses DynDNS which likely has to be replaced with something else to make this work.  Also note, that this script uses 'extra' variables to e.g. store the username and password for the DynDNS service.
 
 There's also a dummy entry in that list as the list must have at least one element. So, when not doing any of the predefined entries, at least the dummy must be present.
 
-> **Note:** PATty is currently not available as a standalone .deb file. We will include it with 2.6.1 as part of the controller distribution (in addition to installing it).
-
-> **Note:** AWS userdata is limited to 16KB of data (Base64 encoded).  That limit is easily reached.  If more customization is done with additional scripts (like certificate installation or system customization), then it's likely to run into this limit.  The tooling will eventually need to copy the script bundle to storage (S3) and download it from there during server bring-up (this is not done today!).  See [this SO post](https://stackoverflow.com/questions/72099325/bypassing-16kb-ec2-user-data-limitation).
+> [!NOTE]
+> AWS userdata is limited to 16KB of data (Base64 encoded).  That limit is easily reached.  If more customization is done with additional scripts (like certificate installation or system customization), then it's likely to run into this limit.  The tooling will eventually need to copy the script bundle to storage (S3) and download it from there during server bring-up (this is not done today!).  See [this SO post](https://stackoverflow.com/questions/72099325/bypassing-16kb-ec2-user-data-limitation).
 
 #### Sys section
 
@@ -345,7 +347,8 @@ Here, the reference platforms are listed which should be copied from the S3 buck
 
 It's mandatory that for each definition at least **one** matching image definition must be listed and that the name of these node and image definitions match with the names in the specified S3 bucket.
 
-> **Note:** The external connector and unmanaged switch are baked into the software, there's no need to have them listed here again.
+> [!NOTE]
+> The external connector and unmanaged switch are baked into the software, there's no need to have them listed here again.
 
 ### Required "layout" of the software bucket
 
@@ -358,7 +361,7 @@ The reference platform files are taken from the reference platform ISO and can b
 
 ```plain
 $ aws s3 ls --recursive s3://aws-bucket-name/
-2023-03-02 07:43:56   82189664 cml2_2.5.0-5_amd64.deb
+2024-04-16 07:43:56  175189664 cml2_2.7.0-4_amd64-20.pkg
 2023-03-02 14:38:10       2136 refplat/node-definitions/alpine.yaml
 2023-03-03 11:29:24       1652 refplat/node-definitions/iosv.yaml
 2023-03-03 11:29:23       1690 refplat/node-definitions/iosvl2.yaml
@@ -373,7 +376,8 @@ $ aws s3 ls --recursive s3://aws-bucket-name/
 2023-03-02 14:38:09   23134208 refplat/virl-base-images/server-tcl-11-1/tcl-11-1.qcow2
 ```
 
-> **Note:** The Debian package is in the top folder of the bucket and the platform files are in the refplat folder. Within that folder, the structure is identical to the structure of the reference platform ISO image.
+> [!NOTE]
+> The software package is in the top folder of the bucket and the platform files are in the refplat folder. Within that folder, the structure is identical to the structure of the reference platform ISO image.
 
 Uploading the files into the S3 bucket is only required for the first time or when updating software. Even when CML instances are stopped / destroyed, the software in the S3 bucket is typically not removed.
 
@@ -381,19 +385,19 @@ Uploading the files into the S3 bucket is only required for the first time or wh
 
 The upload tool makes it easy to quickly select and upload the software package and images to a defined S3 bucket (the bucket must exist already).
 
-> **Note:** The required CML software is the "pkg" file that is available for download from the Cisco software download page.  Example: `cml2_2.6.0-5_amd64-5.pkg`. Also note the .pkg suffix.
->
-> Placing the .pkg file into the directory with the upload tool will automatically extract the needed Debian package and offer the user to upload that package to the S3 bucket.
+> [!NOTE]
+> The required CML software is the "pkg" file that is available for download from the Cisco software download page.  Example: `cml2_2.7.0-4_amd64-20.pkg`. Also note the .pkg suffix.
 
 Start the tool by providing the bucket name as an argument and the location of the reference platform images. The defaults for both are `aws-cml-images` for the bucket name and `/var/lib/libvirt/images` for the reference platform image location.
 
 The tool will then display a simple dialog where the images which should be copied to the bucket can be selected:
 
-![](images/upload-refplat.png)
+![](../images/upload-refplat.png)
 
 After selecting OK the upload process will be started immediately. To abort the process, Ctrl-C can be used.
 
-> **Note:** If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
+> [!NOTE]
+> If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
 
 Help can be obtained via `./upload-images-to-aws.sh --help`.
 
@@ -448,6 +452,34 @@ ssh -p1122 sysadmin@IP_ADDRESS_OF_CONTROLLER /provision/del.sh
 ```
 
 This requires all labs to be stopped (no running VMs allowed) prior to removing the license. It will only work as long as the provisioned usernames and passwords have not changed between deployment and destruction of the instance.
+
+## Cluster support
+
+Cluster support has been added to AWS with version 0.3.0.   This should be considered even more experimental than the rest of the tool chain.  A 'cluster' configuration section has been added to the configuration file.  The following tables describe the available attributes / settings:
+
+| Attribute               | Type    | Description / notes                                          |
+| ----------------------- | ------- | ------------------------------------------------------------ |
+| enable_cluster          | boolean | If set to true, then a cluster will be created               |
+| secret                  | string  | the common secret for computes to register with the controller |
+| allow_vms_on_controller | boolean | If set to false, then controllers will not run any node VMs, only computes will |
+| number_of_compute_nodes | int     | Amount of compute nodes to be created                        |
+
+And here's the attributes of the 'aws' configuration dictionary:
+
+| Attribute                              | Type    | Description / notes                                          |
+| -------------------------------------- | ------- | ------------------------------------------------------------ |
+| region                                 | string  | as before                                                    |
+| availability_zone                      | string  | **new:** required for VPC creation                           |
+| bucket                                 | string  | as before                                                    |
+| flavor                                 | string  | as before, used for the controller                           |
+| flavor_compute                         | string  | **new:** flavor to use for the computes                      |
+| profile                                | string  | as before                                                    |
+| Public_vpc_ipv4_cidr                   | string  | **new:** IPv4 prefix to use with the VPC (new, not using the default VPC anymore) |
+| enable_ebs_encryption                  | boolean | **new:** sets the encryption flag for block storage          |
+| spot_instances.use_spot_for_controller | boolean | **new:** whether the controller should use a spot instance   |
+| spot_instances.use_spot_for_computes   | boolean | **new:** whether all the computes should use a spot instances |
+
+Before deploying a cluster, it is strongly recommended to go with an all-in-one first to verify that all the required pieces (software, images, configuration, ...) are in place and work properly.
 
 ## Example run
 
@@ -547,7 +579,8 @@ The system is running and the VIRL2 target (CML) is active!
 
 Prior to stopping the instance, the licensing token must be removed via the UI. Otherwise it's still considered "in use" in Smart Licensing. This is done via the UI or using the `del.sh` script / SSH command which is provided as part of the deploy output (see above). Then run the destroy command.
 
-> **Note:** The `del.sh` has no output if the command is successful.
+> [!NOTE]
+> The `del.sh` has no output if the command is successful.
 
 ```plain
 $ ssh -p1122 sysadmin@18.194.38.215 /provision/del.sh
@@ -602,7 +635,8 @@ $
 
 At this point, the compute resources have been released / destroyed. Images in the S3 bucket are still available for bringing up new instances.
 
-> **Note:** Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
+> [!NOTE]
+> Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
 
 ## Troubleshooting
 
@@ -614,7 +648,8 @@ In case of errors during deployment or when the CML instance won't become ready,
 - check for errors in the log files in the `/var/log/cloud/` directory
 - check output of `cloud-init status`
 
-> **Note:** Not all instance flavors have a serial console but metal flavors do!
+> [!NOTE]
+> Not all instance flavors have a serial console but metal flavors do!
 
 ## Caveats and limitations
 
@@ -631,10 +666,6 @@ As pointed out above, full functionality **requires a metal instance flavor** be
 ### No software upgrade
 
 Software upgrade or migration is **not supported** for cloud instances. We advise to download topologies or configurations prior to destroying the instance.
-
-### No cluster support
-
-At this point in time, CML AWS **instances are "all-in-one" instances**. No problems are expected running a cluster in AWS but this will require additional network plumbing and orchestration / configuration which hasn't been implemented and tested, yet.
 
 ### No bridge support
 

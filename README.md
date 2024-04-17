@@ -1,12 +1,14 @@
 # README
 
-Version 0.2.1, March 04 2024
+Version 0.3.0, April 16 2024
 
 This repository includes scripts, tooling and documentation to provision an instance of Cisco Modeling Labs (CML) in various cloud services. Currently supported are Amazon Web Services (AWS) and Microsoft Azure.
 
-> **IMPORTANT** The CML deployment procedure and the tool chain / code provided in this repository are **considered "experimental"**. If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
+> [!IMPORTANT]
+> The CML deployment procedure and the tool chain / code provided in this repository are **considered "experimental"**. If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
 
-> **IMPORTANT** Read the section below about cloud provider selection (prepare script).
+> [!IMPORTANT]
+> Read the section below about cloud provider selection (prepare script).
 
 ## General requirements
 
@@ -35,7 +37,7 @@ Some of the steps and procedures outlined below are preparation steps and only n
 
 #### Important: Cloud provider selection
 
-The tooling supports multiple cloud providers (currently AWS and Azure).  Not everyone wants both providers.  It is mandatory to select and configure which provider to use.  This is a two step process:
+The tooling supports multiple cloud providers (currently AWS and Azure).  Not everyone wants both providers.  The **default configuration is set to AWS only**.  If Azure should be used either instead or in addition then the following steps are mandatory:
 
 1. Run the `prepare.sh` script to modify and prepare the tool chain.  If on Windows, use `prepare.bat`.  You can actually choose to use both, if that's what you want.
 2. Configure the proper target ("aws" or "azure") in the configuration file
@@ -48,16 +50,17 @@ The default "out-of-the-box" is AWS, so if you want to run on Azure, don't forge
 
 Terraform can be downloaded for free from [here](https://developer.hashicorp.com/terraform/downloads). This site has also instructions how to install it on various supported platforms.
 
-Deployments of CML using Terraform were tested using the versions mentioned below on Ubuntu Linux.
+Deployments of CML using Terraform were tested using the versions mentioned below on Ubuntu Linux and macOS.
 
 ```plain
 $ terraform version
-Terraform v1.7.3
-on linux_amd64
+Terraform v1.8.0
+on darwin_arm64
 + provider registry.terraform.io/ciscodevnet/cml2 v0.7.0
-+ provider registry.terraform.io/hashicorp/aws v5.37.0
-+ provider registry.terraform.io/hashicorp/azurerm v3.92.0
-+ provider registry.terraform.io/hashicorp/random v3.6.0
++ provider registry.terraform.io/hashicorp/aws v5.45.0
++ provider registry.terraform.io/hashicorp/azurerm v3.99.0
++ provider registry.terraform.io/hashicorp/cloudinit v2.3.3
++ provider registry.terraform.io/hashicorp/random v3.6.1
 $
 ```
 
@@ -96,7 +99,6 @@ See the AWS specific document for additional information how to define variables
 
 The deploy module has a couple of extra scripts which are not enabled / used by default.  They are:
 
-- install IOL related files, likely obsolete with the release of 2.7 (`02-iol.sh`)
 - request/install certificates from Letsencrypt (`03-letsencrypt.sh`)
 - customize additional settings, here: add users and resource pools (`04-customize.sh`).
 
