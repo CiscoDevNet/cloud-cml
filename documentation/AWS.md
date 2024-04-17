@@ -141,6 +141,14 @@ For additional information, see this [documentation link](https://docs.aws.amazo
 
 Create this policy in the same way as the S3 access policy, name it accordingly as 'cml-kms-access'.  It can be referenced by the cml_terraform user below.  It might be required to limit the resource where this policy should be applied to.  The above example uses a wild-card.
 
+With the default settings on AWS,  setting the`enable_ebs_encryption` to true in the aws section of `config.yml`, default KMS keys will be used, so there is no need for an extra IAM policy. 
+
+It is required, however, when custom KSM keys are used on AWS; in such a case, the TF user needs to have access to those via IAM policy.
+
+> [!NOTE]
+>
+> In some companies, EBS encryption might be enforced regardless of whether `enable_ebs_encryption` is set to true.
+
 ### Create Role
 
 Now that we have the S3 access policy, we can create a role that uses this policy.
