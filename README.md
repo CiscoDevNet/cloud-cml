@@ -22,7 +22,7 @@ Furthermore, the user needs to have access to the cloud service. E.g. credential
 
 The tool chain / build scripts and Terraform can be installed on the on-prem CML controller or, when this is undesirable due to support concerns, on a separate Linux instance.
 
-That said, it *should be possible* to run the tooling also on macOS with tools installed via [Homebrew](https://brew.sh/). Or on Windows with WSL. However, this hasn't been tested by us.
+That said, the tooling also runs on macOS with tools installed via [Homebrew](https://brew.sh/). Or on Windows with WSL. However, Windows hasn't been tested by us.
 
 ### Preparation
 
@@ -37,14 +37,14 @@ Some of the steps and procedures outlined below are preparation steps and only n
 
 #### Important: Cloud provider selection
 
-The tooling supports multiple cloud providers (currently AWS and Azure).  Not everyone wants both providers.  The **default configuration is set to AWS only**.  If Azure should be used either instead or in addition then the following steps are mandatory:
+The tooling supports multiple cloud providers (currently AWS and Azure).  Not everyone wants both providers.  The **default configuration is set to use AWS only**.  If Azure should be used either instead or in addition then the following steps are mandatory:
 
 1. Run the `prepare.sh` script to modify and prepare the tool chain.  If on Windows, use `prepare.bat`.  You can actually choose to use both, if that's what you want.
 2. Configure the proper target ("aws" or "azure") in the configuration file
 
 The first step is unfortunately required, since it is impossible to dynamically select different cloud configurations within the same Terraform HCL configuration.  See [this SO link](https://stackoverflow.com/questions/70428374/how-to-make-the-provider-configuration-optional-and-based-on-the-condition-in-te) for more some context and details.
 
-The default "out-of-the-box" is AWS, so if you want to run on Azure, don't forget to run the prepare script.
+The default "out-of-the-box" configuration is AWS, so if you want to run on Azure, don't forget to run the prepare script.
 
 ### Terraform installation
 
@@ -77,12 +77,23 @@ See the documentation directory for cloud specific instructions:
 
 ## Customization
 
-There's two variables which can be defined / set to further customize the behavior of the tool chain:
+There's two Terraform variables which can be defined / set to further customize the behavior of the tool chain:
 
 - `cfg_file`: This variable defines the configuration file.  It defaults to `config.yml`.
 - `cfg_extra_vars`: This variable defines the name of a file with additional variable definitions.  The default is "none".
 
-A typical extra vars file would look like this:
+```bash
+export TF_VAR_access_key="aws-something"
+export TF_VAR_secret_key="aws-somethingelse"
+
+# export TF_VAR_subscription_id="azure-something"
+# export TF_VAR_tenant_id="azure-something-else"
+
+export TF_VAR_cfg_file="config-custom.yml"
+export TF_VAR_cfg_extra_vars="extras.sh"
+```
+
+A typical extra vars file would look like this (as referenced by `extras.sh` in the code above):
 
 ```plain
 CFG_UN="username"
@@ -95,11 +106,11 @@ In this example, four additional variables are defined which can be used in cust
 
 See the AWS specific document for additional information how to define variables in the environment using tools like `direnv` ("Terraform variable definition").
 
-## Extra scripts
+## Additional customization scripts
 
 The deploy module has a couple of extra scripts which are not enabled / used by default.  They are:
 
-- request/install certificates from Letsencrypt (`03-letsencrypt.sh`)
+- request/install certificates from LetsEncrypt (`03-letsencrypt.sh`)
 - customize additional settings, here: add users and resource pools (`04-customize.sh`).
 
 These additional scripts serve mostly as an inspiration for customization of the system to adapt to local requirements.

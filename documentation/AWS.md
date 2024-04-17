@@ -14,8 +14,6 @@ In addition, the `upload-images-to-aws.sh` script requires the AWS CLI and the `
 
 The AWS CLI and Terraform can be installed on the on-prem CML controller or, when this is undesirable due to support concerns, on a separate Linux instance.
 
-That said, it *should be possible* to run the tooling also on macOS with tools installed via [Homebrew](https://brew.sh/). Or on Windows with WSL. However, this hasn't been tested by us.
-
 ### Preparation
 
 Some of the steps and procedures outlined below are preparation steps and only need to be done once. Those are
@@ -46,7 +44,7 @@ on darwin_arm64
 $
 ```
 
-It is assumed that the CML cloud repository was cloned to the computer where Terraform was installed. The following command are all executed within the directory that has the cloned repositories. In particular, this `README.md`, the `main.tf` and the `config.yml` files, amongst other files.
+It is assumed that the CML cloud repository was cloned to the computer where Terraform was installed. The following command are all executed within the directory that has the cloned repositories. In particular, the top level `README.md`, the `main.tf` and the `config.yml` files, amongst other files.
 
 When installed, run `terraform init` to initialize Terraform. This will download the required providers and create the state files.
 
@@ -114,6 +112,35 @@ Replace "bucket-name" to the bucket name of your S3 bucket. This permits Read/Wr
 
 Click "Next" and provide a policy name, "cml-s3-access" for example. Finally, click "Create policy".
 
+### AWS KMS policy for EC2
+
+This is an optional policy that can be added to IAM.  This is not covered in the linked video as it was only added and documented with the 0.3.0 release of the tooling.  This works in combination with the `enable_ebs_encryption` attribute in the AWS section of the configuration file.
+
+```plain
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey",
+                "kms:CreateGrant"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+For additional information, see this [documentation link](https://docs.aws.amazon.com/autoscaling/ec2/userguide/key-policy-requirements-EBS-encryption.html#policy-example-cmk-access).
+
+Create this policy in the same way as the S3 access policy, name it accordingly as 'cml-kms-access'.  It can be referenced by the cml_terraform user below.  It might be required to limit the resource where this policy should be applied to.  The above example uses a wild-card.
+
 ### Create Role
 
 Now that we have the S3 access policy, we can create a role that uses this policy.
@@ -145,6 +172,7 @@ In the third step we attach permission policies to the group created in the step
 - AmazonEC2FullAccess, a pre-defined policy that allows to control EC2 instances
 - cml-s3-access, the S3 access policies allowing users in this group to read/write/list objects in the bucket specified by the policy
 - the "pass role" policy which passes the permission allowing access to the S3 bucket to EC2 instances the users in this group create
+- if the KMS access policy has been created and should be used, then attach it to the user as well (optional)
 
 To add these permission follow these steps:
 
@@ -165,6 +193,16 @@ To add these permission follow these steps:
 - select "Attach policies directly"
 - select "Customer managed" in the "Filter by type" drop down
 - select the "cml-s3-access" customer managed policy (the one we created above)
+- click "Next"
+- click "Add permissions"
+
+#### KMS policy (optional)
+
+- click on "Add permissions"
+- select "Add permissions" from the drop down
+- select "Attach policies directly"
+- select "Customer managed" in the "Filter by type" drop down
+- select the "cml-kms-access" customer managed policy (the one we created above)
 - click "Next"
 - click "Add permissions"
 
@@ -216,7 +254,7 @@ The below screen shot shows an example of such a user with the required permissi
 
 ![image-20230810161432721](../images/permissions.png)
 
-This role that is passed ("s3-access-for-ec2") is then configured in the `config.yml` attribute 'aws.profile'.
+This role that is passed ("s3-access-for-ec2") is then configured in the `config.yml` attribute 'aws.profile'.  The optional "cml-kms-access" policy would show as the fourth line above (not shown in the screen shot), if added.
 
 ![image-20230810162352026](../images/perm-details.png)
 
@@ -251,6 +289,7 @@ Limited usability can be achieved by using compute optimized C5 instances (link 
 - External connector and unmanaged switch
 - All Linux node types
 - IOSv and IOSv-L2
+- IOL-XE and IOL-L2-XE
 
 To enable this experimental "feature", the `00-patch_vmx.sh` script must be uncommented in the `app.customize` list of the configuration file. See below.
 
@@ -298,9 +337,13 @@ This holds the various configurations for the EC2 instance and S3 bucket to be u
 
 In theory, the EC2 instance can be run in a different region than the region of the bucket where the software is stored. The tooling, however, assumes that both are in the same region.
 
+> [!WARNING]
+>
+> Please verify the correct configuration attributes within the `config.yml` which is the reference.  There's also additional information in the VPC and cluster sections below (new with 0.3.0).
+
 #### Host name
 
-Key name `hostname`. Name of the instance, standard hostname rules apply.
+Key name `controller_hostname`. Name of the instance, standard hostname rules apply.
 
 #### App section
 
@@ -308,7 +351,7 @@ Within the app section, the following keys must be set with the correct values:
 
 - `app.user` username of the admin user (typically "admin") for UI access
 - `app.pass` password of the admin user
-- `app.deb` the filename of the Debian .deb package with the software, stored in the specified S3 bucket at the top level
+- `app.software` the filename of the CML .pkg package with the software, stored in the specified S3 bucket at the top level
 - `app.customize` a list of scripts, located in the `scripts` folder which will be run as part of the instance creation to customize the install
 
 ##### Customization
@@ -354,7 +397,7 @@ It's mandatory that for each definition at least **one** matching image definiti
 
 The software and reference platform definition and images must be uploaded to the S3 bucket to be used by the provisioning script. This includes:
 
-- the Debian package with the CML2 software
+- the CML software package as downloaded from CCO (the "update package", not the OVA)
 - the reference platform node definitions, image definitions and disk images of the reference platforms which should be available on the CML cloud instance
 
 The reference platform files are taken from the reference platform ISO and can be copied using the provided `upload-images-to-aws.sh` script or using the AWS CLI script or the Web UI directly into the bucket resulting in a folder hierarchy that looks similar to this:
@@ -452,6 +495,16 @@ ssh -p1122 sysadmin@IP_ADDRESS_OF_CONTROLLER /provision/del.sh
 ```
 
 This requires all labs to be stopped (no running VMs allowed) prior to removing the license. It will only work as long as the provisioned usernames and passwords have not changed between deployment and destruction of the instance.
+## VPC support
+
+With 0.3.0, the tooling always adds a custom VPC and doesn't use the default VPC anymore.  Additional variables have been added to the configuration file `config.yml` to support this.
+
+| Attribute                | Type                | Comment                                          |
+| ------------------------ | ------------------- | ------------------------------------------------ |
+| aws.public_vpc_ipv4_cidr | string, IPv4 prefix | defines the prefix to use on the VPC             |
+| aws.availability.zone    | string              | needed for VPC creation, should match the region |
+
+There's also a new variable, `allowed_ipv4_subnets` which defines a list of prefixes which are allowed to access the CML instance.  This defaults to "everywhere".
 
 ## Cluster support
 
@@ -655,13 +708,9 @@ In case of errors during deployment or when the CML instance won't become ready,
 
 This section lists a couple of caveats and limitations when running CML in AWS.
 
-### AWS only
-
-At this point in time, the tooling **only supports AWS**. Support for other platforms like Azure and Google Cloud Platform is planned for future releases.
-
 ### Metal flavor needed
 
-As pointed out above, full functionality **requires a metal instance flavor** because only the AWS metal flavors provide support for the VMX CPU flag to run accelerated nested VMs.
+As pointed out above, full functionality **requires a metal instance flavor** because only the AWS metal flavors provide support for the VMX CPU flag to run accelerated nested VMs.  A limited set of platforms works on non-metal flavors and when using the `00-patch_vmx.sh` customization script.
 
 ### No software upgrade
 
