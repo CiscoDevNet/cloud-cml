@@ -14,6 +14,11 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: '${jsonencode(cfg.refplat)}'
+  - path: /provision/common.sh
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, common)}
   - path: /provision/copyfile.sh
     owner: root:root
     permissions: "0700"

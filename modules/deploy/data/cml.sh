@@ -9,8 +9,9 @@
 # set -x
 # set -e
 
-source /provision/vars.sh
+source /provision/common.sh
 source /provision/copyfile.sh
+source /provision/vars.sh
 
 function setup_pre_aws() {
     export AWS_DEFAULT_REGION=${CFG_AWS_REGION}
@@ -24,39 +25,36 @@ function setup_pre_azure() {
 }
 
 function base_setup() {
-    CONFIG_FILE="/etc/virl2-base-config.yml"
-    if [[ -r "$CONFIG_FILE" ]]; then
-        # Check if this device is a controller
-        if grep -qi "is_controller: true" "$CONFIG_FILE"; then
 
-            # copy node definitions and images to the instance
-            VLLI=/var/lib/libvirt/images
-            NDEF=node-definitions
-            IDEF=virl-base-images
-            mkdir -p $VLLI/$NDEF
+    # Check if this device is a controller
+    if is_controller; then
+        # copy node definitions and images to the instance
+        VLLI=/var/lib/libvirt/images
+        NDEF=node-definitions
+        IDEF=virl-base-images
+        mkdir -p $VLLI/$NDEF
 
-            # copy all node definitions as defined in the provisioned config
-            if [ $(jq </provision/refplat '.definitions|length') -gt 0 ]; then
-                elems=$(jq </provision/refplat -rc '.definitions|join(" ")')
-                for item in $elems; do
-                    copyfile refplat/$NDEF/$item.yaml $VLLI/$NDEF/
-                done
-            fi
+        # copy all node definitions as defined in the provisioned config
+        if [ $(jq </provision/refplat '.definitions|length') -gt 0 ]; then
+            elems=$(jq </provision/refplat -rc '.definitions|join(" ")')
+            for item in $elems; do
+                copyfile refplat/$NDEF/$item.yaml $VLLI/$NDEF/
+            done
+        fi
 
-            # copy all image definitions as defined in the provisioned config
-            if [ $(jq </provision/refplat '.images|length') -gt 0 ]; then
-                elems=$(jq </provision/refplat -rc '.images|join(" ")')
-                for item in $elems; do
-                    mkdir -p $VLLI/$IDEF/$item
-                    copyfile refplat/$IDEF/$item/ $VLLI/$IDEF $item --recursive
-                done
-            fi
+        # copy all image definitions as defined in the provisioned config
+        if [ $(jq </provision/refplat '.images|length') -gt 0 ]; then
+            elems=$(jq </provision/refplat -rc '.images|join(" ")')
+            for item in $elems; do
+                mkdir -p $VLLI/$IDEF/$item
+                copyfile refplat/$IDEF/$item/ $VLLI/$IDEF $item --recursive
+            done
+        fi
 
-            # if there's no images at this point, copy what's available in the defined
-            # cloud storage container
-            if [ $(find $VLLI -type f | wc -l) -eq 0 ]; then
-                copyfile refplat/ $VLLI/ "" --recursive
-            fi
+        # if there's no images at this point, copy what's available in the defined
+        # cloud storage container
+        if [ $(find $VLLI -type f | wc -l) -eq 0 ]; then
+            copyfile refplat/ $VLLI/ "" --recursive
         fi
     fi
 
@@ -67,14 +65,15 @@ function base_setup() {
     apt-get install -y /tmp/*.deb
     # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
     /provision/interface_fix.py
-    sed -i 's/^unmanaged-devices=.*/unmanaged-devices=none/' /usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
     systemctl restart network-manager
     netplan apply
     # Fix for the headless setup (tty remove as the cloud VM has none)
     sed -i '/^Standard/ s/^/#/' /lib/systemd/system/virl2-initial-setup.service
     touch /etc/.virl2_unconfigured
     systemctl stop getty@tty1.service
+    echo "initial setup start: $(date +'%T.%N')"
     systemctl enable --now virl2-initial-setup.service
+    echo "initial setup done: $(date +'%T.%N')"
 
     # this should not be needed in cloud!?
     # systemctl start getty@tty1.service
@@ -82,12 +81,14 @@ function base_setup() {
     # We need to wait until the initial setup is done
     attempts=5
     while [ $attempts -gt 0 ]; do
-        if systemctl show virl2-initial-setup.service | grep -qi 'SubState=exited'; then
+        sleep 5
+        # substate=$(systemctl show --property=SubState --value virl2-initial-setup.service)
+        # if [ "$substate" = "exited" ]; then
+        if [ ! -f /etc/.virl2_unconfigured ];  then
             echo "initial setup is done"
             break
         fi
         echo "waiting for initial setup..."
-        sleep 5
         ((attempts--))
     done
 
@@ -102,6 +103,11 @@ function base_setup() {
 
     # clean up software .pkg / .deb packages
     rm -f /provision/*.pkg /provision/*.deb /tmp/*.deb
+
+    # no PaTTY on computes
+    if ! is_controller; then
+        return 0
+    fi
 
     # enable and configure PaTTY
     if [ "${CFG_COMMON_ENABLE_PATTY}" = "true" ]; then
@@ -120,7 +126,6 @@ function base_setup() {
 
 function cml_configure() {
     target=$1
-    CONFIG_FILE="/etc/virl2-base-config.yml"
     API="http://ip6-localhost:8001/api/v0"
 
     clouduser="ubuntu"
@@ -132,7 +137,10 @@ function cml_configure() {
         mv /home/$clouduser/.ssh/ /home/${CFG_SYS_USER}/
     fi
     chown -R ${CFG_SYS_USER}.${CFG_SYS_USER} /home/${CFG_SYS_USER}/.ssh
-    userdel -r $clouduser
+
+    # disable access for the user but keep it as cloud-init requires it to be
+    # present, otherwise one of the final modules will fail.
+    usermod --expiredate 1 --lock $clouduser
 
     # allow this user to read the configuration vars
     chgrp ${CFG_SYS_USER} /provision/vars.sh
@@ -141,12 +149,10 @@ function cml_configure() {
     # Change the ownership of the del.sh script to the sysadmin user
     chown ${CFG_SYS_USER}.${CFG_SYS_USER} /provision/del.sh
 
-    if [[ -r "$CONFIG_FILE" ]]; then
-        # Check if this device is a controller
-        if grep -qi "is_controller: false" "$CONFIG_FILE"; then
-            echo "This is not a controller node. No need to install licenses."
-            return 0
-        fi
+    # Check if this device is a controller
+    if ! is_controller; then
+        echo "This is not a controller node. No need to install licenses."
+        return 0
     fi
 
     until [ "true" = "$(curl -s $API/system_information | jq -r .ready)" ]; do
@@ -213,10 +219,6 @@ function cml_configure() {
 function postprocess() {
     FILELIST=$(find /provision/ -type f | egrep '[0-9]{2}-[[:alnum:]_]+\.sh' | grep -v '99-dummy' | sort)
     if [ -n "$FILELIST" ]; then
-        systemctl stop virl2.target
-        while [ $(systemctl is-active virl2-controller.service) = active ]; do
-            sleep 5
-        done
         (
             mkdir -p /var/log/provision
             echo "$FILELIST" | wc -l
@@ -228,12 +230,11 @@ function postprocess() {
                 echo "done with $patch"
             done
         )
-        sleep 5
-        # do this for good measure, best case this is a no-op
-        netplan apply
-        # restart the VIRL2 target now
-        systemctl restart virl2.target
     fi
+
+    # disable bridge setup in the cloud instance (controller and computes)
+    /usr/local/bin/virl2-bridge-setup.py --delete
+    sed -i /usr/local/bin/virl2-bridge-setup.py -e '2iexit()'
 }
 
 # Ensure non-interactive Debian package installation

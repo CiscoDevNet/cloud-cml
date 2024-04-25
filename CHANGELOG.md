@@ -5,8 +5,8 @@ Lists the changes for the tool releases.
 ## Version 0.3.0
 
 - allow cluster deployments on AWS
-  - this also now uses a non-default VPC (fixes #9)
-  - this also allows to enable EBS encryption (fixes #8)
+  - create and use a non-default VPC
+  - allow to enable EBS encryption (fixes #8)
   a `cluster` section has been added to the config file.  Some keywords
   have changed (`hostname` -> `controller_hostname`).  See also a new
   "Cluster" section in the [AWS documentation](documentation/AWS.md)
@@ -14,8 +14,15 @@ Lists the changes for the tool releases.
   (this is a breaking change -- you need to change the configuration and upload
   the .pkg to cloud storage instead of the .deb. `deb` -> `software`
 - the PaTTY customization script has been removed.  PaTTY is included in the
-  .pkg. Its installation and configuration is now controller by a new keyword
+  .pkg. Its installation and configuration is now controlled by a new keyword
   `enable_patty` in the `common` section of the config.
+- add a common script file which has currently a function to determine whether
+  the instance is a controller or not.  This makes it easier to install only
+  controller relevant elements and omit them on computes (usable within the
+  main cml.sh file as well as in the customization scripts).
+- explicitly disable bridge0 and also disable the virl2-bridge-setup.py script
+  by inserting exit() as the 2nd line.  This will ensure that service restarts
+  will not try to re-create the bridge0 interface.
 
 ## Version 0.2.1
 

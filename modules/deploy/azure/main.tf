@@ -32,6 +32,7 @@ locals {
     vars          = local.vars
     cml_config    = local.cml_config_controller
     cfg           = var.options.cfg
+    common        = var.options.common
     copyfile      = var.options.copyfile
     del           = var.options.del
     interface_fix = var.options.interface_fix

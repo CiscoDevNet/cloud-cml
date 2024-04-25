@@ -1,7 +1,13 @@
 #!/bin/bash
 
-source /provision/vars.sh
+source /provision/common.sh
 source /provision/copyfile.sh
+source /provision/vars.sh
+
+if ! is_controller; then
+    echo "not a controller, exiting"
+    return
+fi
 
 # copy the converter wheel to the webserver dir
 copyfile cml2tf-0.2.0b3-py3-none-any.whl /var/lib/nginx/html/client/

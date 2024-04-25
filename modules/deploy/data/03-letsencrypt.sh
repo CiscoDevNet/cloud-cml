@@ -7,9 +7,14 @@
 #
 
 
-source /provision/vars.sh
+source /provision/common.sh
 source /provision/copyfile.sh
+source /provision/vars.sh
 
+if ! is_controller; then
+    echo "not a controller, exiting"
+    return
+fi
 
 # define these in extras!
 # CFG_UN=""

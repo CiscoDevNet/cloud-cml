@@ -50,5 +50,6 @@ diff -ru a/simple_drivers/low_level_driver/host_statistics.py b/simple_drivers/l
      def stats(self):
  
 EOF
+systemctl restart virl2-controller.service
 )
 echo "done"
