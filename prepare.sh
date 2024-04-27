@@ -5,6 +5,8 @@
 # All rights reserved.
 #
 
+cd $(dirname $0)
+
 ask_yes_no() {
     while true; do
         read -p "$1 (yes/no): " answer
@@ -41,4 +43,33 @@ else
     echo "Disabling Azure"
     rm azure.tf
     ln -s azure-off.t-f azure.tf
+fi
+if ask_yes_no "Enable Google Cloud Platform"; then
+    echo "Enabling Google Cloud Platform"
+    rm gcp.tf
+    ln -s gcp-on.t-f gcp.tf
+else
+    echo "Disabling Google Cloud Platform"
+    rm gcp.tf
+    ln -s gcp-off.t-f gcp.tf
+fi
+cd ../..
+cd modules/secrets
+if ask_yes_no "Enable Conjur"; then
+    echo "Enabling Conjur"
+    rm conjur.tf || true
+    ln -s conjur-on.t-f conjur.tf
+else
+    echo "Disabling Conjur"
+    rm conjur.tf || true
+    ln -s conjur-off.t-f conjur.tf
+fi
+if ask_yes_no "Enable Vault"; then
+    echo "Enabling Vault"
+    rm vault.tf || true
+    ln -s vault-on.t-f vault.tf
+else
+    echo "Disabling Vault"
+    rm vault.tf || true
+    ln -s vault-off.t-f vault.tf
 fi

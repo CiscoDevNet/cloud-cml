@@ -45,3 +45,17 @@ variable "tenant_id" {
   description = "Azure tenant ID"
   default     = "notset"
 }
+
+# Google Cloud Platform related vars
+
+variable "gcp_project_id" {
+  type        = string
+  description = "GCP subscription ID"
+  default     = "notset"
+}
+
+variable "gcp_region" {
+  type        = string
+  description = "GCP region"
+  default     = "notset"
+}

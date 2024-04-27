@@ -4,7 +4,48 @@
 # All rights reserved.
 #
 
-# at this time, "aws" and "azure" are defined targets
+secret:
+  # At this time, "vault", "conjur" and "dummy" are supported secrets managers
+  # Make sure that you ran the prepare.sh / prepare.bat script!
+  #manager:  vault
+  #manager:  conjur
+  manager:  dummy
+  vault:
+    # Only the v2 version of the key value secret engine is supported
+    # https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2
+    kv_secret_v2_mount: secret
+    # Set this to true to prevent the creation of ephemeral child token used by this provider.
+    skip_child_token: true
+  secrets:
+    app:
+      username: admin
+      # Only used with dummy secret manager
+      # You need to escape special chars:
+      #raw_secret: '\"!@$%'
+      raw_secret: your-secret-password
+      # Used with both Vault and Conjur
+      path: example-org/example-project/admin_password
+      # Used with Vault only
+      field: secret
+
+    sys:
+      username: sysadmin
+      # Only used with dummy secret manager
+      raw_secret: your-secret-password
+      # Used with both Vault and Conjur
+      path: example-org/example-project/sysadmin_password
+      # Used with Vault only
+      field: secret
+
+    smartlicense_token:
+      # Only used with dummy secret manager
+      raw_secret: your-smart-licensing-token
+      # Used with both Vault and Conjur
+      path: example-org/example-project/smartlicense_token
+      # Used with Vault only
+      field: secret
+
+# at this time, "aws", "azure" and "gcp" are defined targets
 # make sure that you ran the prepare.sh / prepare.bat script!
 target: aws
 
@@ -29,6 +70,13 @@ azure:
   storage_account: storage-account-name
   container_name: container-name
 
+gcp:
+  resource_group: resource-group-name
+  size: Standard_D4d_v4
+  size_compute: unused_at_the_moment
+  storage_account: storage-account-name
+  container_name: container-name
+
 common:
   disk_size: 64
   controller_hostname: cml-controller
@@ -45,10 +93,9 @@ cluster:
   compute_disk_size: 32
 
 app:
-  user: admin
-  pass: your-secret-password
-  # need to escape special chars:
-  # pass: '\"!@$%'
+  # No longer used, see the secret manager section above
+  #user: admin
+  #pass: your-secret-password
   software: cml2_2.7.0-4_amd64-20.pkg
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
@@ -57,12 +104,14 @@ app:
     - 99-dummy.sh
 
 sys:
-  user: sysadmin
-  pass: your-secret-password
+  # No longer used, see the secret manager section above
+  #user: sysadmin
+  #pass: your-secret-password
 
 license:
   flavor: CML_Enterprise
-  token: your-smart-licensing-token
+  # No longer used, see the secret manager section above
+  #token: your-smart-licensing-token
   # Unless you have additional node licenses available, leave this at zero
   nodes: 0
 
