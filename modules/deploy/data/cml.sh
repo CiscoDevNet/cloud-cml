@@ -104,6 +104,12 @@ function base_setup() {
     # clean up software .pkg / .deb packages
     rm -f /provision/*.pkg /provision/*.deb /tmp/*.deb
 
+    # disable bridge setup in the cloud instance (controller and computes)
+    /usr/local/bin/virl2-bridge-setup.py --delete
+    sed -i /usr/local/bin/virl2-bridge-setup.py -e '2iexit()'
+    rm /etc/netplan/00-cml2-base.yaml
+    netplan apply
+
     # no PaTTY on computes
     if ! is_controller; then
         return 0
@@ -111,7 +117,8 @@ function base_setup() {
 
     # enable and configure PaTTY
     if [ "${CFG_COMMON_ENABLE_PATTY}" = "true" ]; then
-        GWDEV=$(ip -json route | jq -r '.[]|select(.dst=="default")|.dev')
+        sleep 5  # wait for ip address acquisition
+        GWDEV=$(ip -json route | jq -r '.[]|select(.dst=="default")|(.metric|tostring)+"\t"+.dev' | sort | head -1 | cut -f2)
         echo "OPTS=\"-bridge $GWDEV -poll 5\"" >>/etc/default/patty.env
         sed -i '/^After/iWants=virl2-patty.service' /lib/systemd/system/virl2.target
         systemctl daemon-reload
@@ -231,10 +238,6 @@ function postprocess() {
             done
         )
     fi
-
-    # disable bridge setup in the cloud instance (controller and computes)
-    /usr/local/bin/virl2-bridge-setup.py --delete
-    sed -i /usr/local/bin/virl2-bridge-setup.py -e '2iexit()'
 }
 
 # Ensure non-interactive Debian package installation
