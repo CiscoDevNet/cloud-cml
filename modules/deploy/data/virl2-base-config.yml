@@ -1,12 +1,12 @@
 admins:
   controller:
-    password: ${cfg.app.pass}
-    username: ${cfg.app.user}
+    password: ${cfg.secrets.app.secret}
+    username: ${cfg.secrets.app.username}
   system:
-    password: ${cfg.sys.pass}
-    username: ${cfg.sys.user}
+    password: ${cfg.secrets.sys.secret}
+    username: ${cfg.secrets.sys.username}
 cluster_interface: ""
-compute_secret: ${cfg.cluster.secret}
+compute_secret: ${cfg.secrets.cluster.secret}
 controller_name: ${cfg.common.controller_hostname}
 copy_iso_to_disk: false
 hostname: ${hostname}
