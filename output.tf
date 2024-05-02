@@ -12,3 +12,8 @@ output "cml2info" {
     "version" : module.ready.state.version
   }
 }
+
+output "cml2secrets" {
+  value     = local.cfg.secrets
+  sensitive = true
+}

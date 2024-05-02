@@ -61,7 +61,7 @@ The default "out-of-the-box" configuration is AWS, so if you want to run on Azur
 > ```
 > Refer to the `.envrc.example` file for examples to set up environment variables to use an external secrets manager.
 >
-> If you want random passwords to be generated when applying, based on [random_pet](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/pet), leave the `raw_secret` undefined:
+> If you want random passwords to be generated when applying, based on [random_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password), leave the `raw_secret` undefined:
 > ```yaml
 > secret:
 >   manager: dummy
@@ -70,6 +70,7 @@ The default "out-of-the-box" configuration is AWS, so if you want to run on Azur
 >       username: admin
 >       # raw_secret: # Undefined
 > ```
+> You can retrieve the generated passwords after applying with `terraform output cml2secrets`.
 
 > [!IMPORTANT]
 > CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`.  These steps are only required if using CyberArk Conjur as an external secrets manager.

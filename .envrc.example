@@ -5,6 +5,30 @@
 #
 
 #########
+# Configs
+#########
+#export TF_VAR_cfg_file=""
+#export TF_VAR_cfg_extra_vars=""
+
+########
+# Clouds
+########
+
+#
+# AWS
+#
+
+#export TF_VAR_aws_access_key=""
+#export TF_VAR_aws_secret_key=""
+
+#
+# Azure
+#
+
+#export TF_VAR_subscription_id=""
+#export TF_VAR_tenant_id=""
+
+#########
 # Secrets
 #########
 
@@ -46,21 +70,3 @@
 # vault login #-method=ldap
 # -or for Windows-
 #set VAULT_ADDR=https://vault-server.example.com:8200
-
-########
-# Clouds
-########
-
-#
-# AWS
-#
-
-#export TF_VAR_aws_access_key=""
-#export TF_VAR_aws_secret_key=""
-
-#
-# Azure
-#
-
-#export TF_VAR_subscription_id=""
-#export TF_VAR_tenant_id=""

@@ -49,8 +49,8 @@ secret:
   # At this time, 'vault', 'conjur' and 'dummy' are supported secrets managers.
   # Make sure that you also run the prepare.sh / prepare.bat script, otherwise
   # a 'raw_secret' will be used.  If 'raw_secret' is not defined, a 
-  # random_pet will be used.
-  # https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/pet
+  # random_password will be used.
+  # https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password
   #manager:  vault
   #manager:  conjur
   manager:  dummy
@@ -73,7 +73,7 @@ secret:
   secrets:
     app:
       username: admin
-      # Used with dummy secret manager.  If unspecified, a random_pet 
+      # Used with dummy secret manager.  If unspecified, a random 
       # password will be generated. You need to escape special chars:
       #raw_secret: '\"!@$%'
       raw_secret: your-secret-password
@@ -84,7 +84,7 @@ secret:
 
     sys:
       username: sysadmin
-      # Used with dummy secret manager.  If unspecified, a random_pet 
+      # Used with dummy secret manager.  If unspecified, a random 
       # password will be generated.
       raw_secret: your-secret-password
       # Path to secret, used with both Vault and Conjur
@@ -101,7 +101,7 @@ secret:
       #field: token
 
     cluster:
-      # Used with dummy secret manager.  If unspecified, a random_pet 
+      # Used with dummy secret manager.  If unspecified, a random 
       # password will be generated.
       raw_secret: your-secret-password
       # Path to secret, used with both Vault and Conjur
