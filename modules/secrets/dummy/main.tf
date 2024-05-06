@@ -25,7 +25,9 @@ locals {
         {
           for k2, v2 in v : k2 => v2 if !contains(local.exclude_keys, k2)
         }
-      : {}),
+      : 
+        {}
+      ),
       {
         secret = try(v.raw_secret, random_password.random_secret[k].result)
       }
