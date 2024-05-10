@@ -4,5 +4,3 @@
 .terraform.lock.hcl
 terraform.tfstate*
 .terraform.tfstate.lock.info
-modules/secrets/conjur.tf
-modules/secrets/vault.tf
