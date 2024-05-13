@@ -200,7 +200,7 @@ These additional scripts serve mostly as an inspiration for customization of the
 
 ### Requesting a cert
 
-The letencrypt script requests a cert if there's none already present.  The cert can then be manually copied from the host to the cloud storage with the hostname as a prefix.  If the host with the same hostname is started again at a later point in time and the cert files exist in cloud storage, then those files are simply copied back to the host without requesting a new certificate.  This avoids running into any certificate request limits.
+The letsencrypt script requests a cert if there's none already present.  The cert can then be manually copied from the host to the cloud storage with the hostname as a prefix.  If the host with the same hostname is started again at a later point in time and the cert files exist in cloud storage, then those files are simply copied back to the host without requesting a new certificate.  This avoids running into any certificate request limits.
 
 Certificates are stored in `/etc/letsencrypt/live` in a directory with the configured hostname.
 

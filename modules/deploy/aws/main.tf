@@ -9,6 +9,7 @@ locals {
     for i in range(1, var.options.cfg.cluster.number_of_compute_nodes + 1) :
     format("%s-%d", var.options.cfg.cluster.compute_hostname_prefix, i)
   ]
+
   # Late binding required as the token is only known within the module.
   # (Azure specific)
   vars = templatefile("${path.module}/../data/vars.sh", {
@@ -133,6 +134,7 @@ locals {
       "self" : false,
     }
   ]
+
   cml_patty_range = [
     {
       "description" : "allow PATty TCP",
@@ -234,6 +236,7 @@ resource "aws_internet_gateway" "public_igw" {
   vpc_id = aws_vpc.main-vpc.id
   tags   = { "Name" = "CML-igw-${var.options.rand_id}" }
 }
+
 resource "aws_subnet" "public_subnet" {
   availability_zone       = var.options.cfg.aws.availability_zone
   cidr_block              = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 0)
@@ -241,13 +244,14 @@ resource "aws_subnet" "public_subnet" {
   map_public_ip_on_launch = true
   tags                    = { "Name" = "CML-public-${var.options.rand_id}" }
 }
+
 resource "aws_route_table" "for_public_subnet" {
   vpc_id = aws_vpc.main-vpc.id
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.public_igw.id
   }
-  tags = { "Name" = "CML-public-${var.options.rand_id}" }
+  tags = { "Name" = "CML-public-rt-${var.options.rand_id}" }
 }
 
 resource "aws_route_table_association" "public_subnet" {
@@ -260,6 +264,7 @@ resource "aws_network_interface" "pub_int_cml" {
   security_groups = [aws_security_group.sg-tf.id]
   tags            = { Name = "CML-controller-pub-int-${var.options.rand_id}" }
 }
+
 resource "aws_eip" "server_eip" {
   network_interface = aws_network_interface.pub_int_cml.id
   tags              = { "Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server" }
@@ -281,6 +286,7 @@ resource "aws_eip" "nat_eip" {
   }
   count = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
+
 resource "aws_nat_gateway" "compute_nat_gw" {
   allocation_id = aws_eip.nat_eip[0].id // Allocate an EIP 
   subnet_id     = aws_subnet.public_subnet.id
@@ -294,6 +300,7 @@ resource "aws_nat_gateway" "compute_nat_gw" {
     aws_subnet.compute_nat_subnet
   ]
 }
+
 resource "aws_route_table" "compute_route_table" {
   vpc_id = aws_vpc.main-vpc.id
 
@@ -438,7 +445,6 @@ resource "aws_instance" "cml_controller" {
   }
   user_data = data.cloudinit_config.cml_controller.rendered
 }
-
 
 resource "aws_instance" "cml-compute" {
   instance_type        = var.options.cfg.aws.flavor_compute
