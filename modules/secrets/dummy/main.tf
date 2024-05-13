@@ -25,7 +25,7 @@ locals {
         {
           for k2, v2 in v : k2 => v2 if !contains(local.exclude_keys, k2)
         }
-      : 
+        :
         {}
       ),
       {

@@ -1,6 +1,6 @@
 # README
 
-Version 0.3.0, April 16 2024
+Version 0.3.0, May 13 2024
 
 This repository includes scripts, tooling and documentation to provision an instance of Cisco Modeling Labs (CML) in various cloud services. Currently supported are Amazon Web Services (AWS) and Microsoft Azure.
 
@@ -8,7 +8,7 @@ This repository includes scripts, tooling and documentation to provision an inst
 > The CML deployment procedure and the tool chain / code provided in this repository are **considered "experimental"**. If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
 
 > [!IMPORTANT]
-> Read the section below about cloud provider selection (prepare script).
+> Read the section below about [cloud provider selection](#important-cloud-provider-selection) (prepare script).
 
 ## General requirements
 
@@ -46,53 +46,86 @@ The first step is unfortunately required, since it is impossible to dynamically 
 
 The default "out-of-the-box" configuration is AWS, so if you want to run on Azure, don't forget to run the prepare script.
 
-#### External Secrets Managers
+#### Managing secrets
 
 > [!WARNING]
-> It is a best practice to **not** keep your CML secrets and passwords in Git.  Rather you should keep them in an external secrets manager such as [Hashicorp Vault](https://www.vaultproject.io/) or [CyberArk Conjur](https://www.conjur.org/).  You can refer to the secret maintained in the secrets manager by updating `config.yml` appropriately.  If you use the `dummy` secrets manager, it will use the `raw_secret` as specified in the `config.yml` file, and the secrets will **not** be protected.
-> ```yaml
-> secret:
->   manager: conjur
->   secrets:
->     app:
->       username: admin
->       # Example using Conjur
->       path: example-org/example-project/secret/admin_password
-> ```
-> Refer to the `.envrc.example` file for examples to set up environment variables to use an external secrets manager.
+> It is a best practice to **not** keep your CML secrets and passwords in Git!
+
+CML cloud supports these storage methods for the required platform and application secrets:
+
+- Raw secrets in the configuration file (as supported with previous versions)
+- Random secrets by not specifiying any secrets
+- [Hashicorp Vault](https://www.vaultproject.io/)
+- [CyberArk Conjur](https://www.conjur.org/)
+
+See the sections below for additional details how to use and manage secrets.
+
+##### Referencing secrets
+
+You can refer to the secret maintained in the secrets manager by updating `config.yml` appropriately.  If you use the `dummy` secrets manager, it will use the `raw_secret` as specified in the `config.yml` file, and the secrets will **not** be protected.
+
+```yaml
+secret:
+  manager: conjur
+  secrets:
+    app:
+      username: admin
+      # Example using Conjur
+      path: example-org/example-project/secret/admin_password
+```
+
+Refer to the `.envrc.example` file for examples to set up environment variables to use an external secrets manager.
+
+##### Random secrets
+
+If you want random passwords to be generated when applying, based on [random_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password), leave the `raw_secret` undefined:
+
+```yaml
+secret:
+  manager: dummy
+  secrets:
+    app:
+      username: admin
+      # raw_secret: # Undefined
+```
+
+> [!NOTE]
 >
-> If you want random passwords to be generated when applying, based on [random_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password), leave the `raw_secret` undefined:
-> ```yaml
-> secret:
->   manager: dummy
->   secrets:
->     app:
->       username: admin
->       # raw_secret: # Undefined
-> ```
 > You can retrieve the generated passwords after applying with `terraform output cml2secrets`.
 
+The included default `config.yml` configures generated passwords for the following secrets:
+
+- App password (for the UI)
+- System password for the OS system administration user
+- Cluster secret when clustering is enabled
+
+Regardless of the secret manager in use or whether you use random passwords or not:  You **must** provide a valid Smart Licensing token for the sytem to work, though.
+
+##### CyberArk Conjur installation
+
 > [!IMPORTANT]
-> CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`.  These steps are only required if using CyberArk Conjur as an external secrets manager.
->
-> 1. Download the [CyberArk Conjur provider](https://github.com/cyberark/terraform-provider-conjur/releases).
-> 2. Copy the custom provider to `~/.terraform.d/plugins/localhost/cyberark/conjur/<version>/<architecture>/terraform-provider-conjur_v<version>`
-> ```
-> mkdir -vp ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
-> unzip ~/terraform-provider-conjur_0.6.7-4_darwin_arm64.zip -d ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
-> ```
-> 3. Create a `.terraformrc` file in the user's home:
-> ```hcl
-> provider_installation {
->   filesystem_mirror {
->     path    = "/Users/example/.terraform.d/plugins"
->     include = ["localhost/cyberark/conjur"]
->   }
->   direct {
->     exclude = ["localhost/cyberark/conjur"]
->   }
-> }
-> ```
+> CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`. 
+
+These steps are only required if using CyberArk Conjur as an external secrets manager.
+1. Download the [CyberArk Conjur provider](https://github.com/cyberark/terraform-provider-conjur/releases).
+2. Copy the custom provider to `~/.terraform.d/plugins/localhost/cyberark/conjur/<version>/<architecture>/terraform-provider-conjur_v<version>`
+   ```bash
+   $ mkdir -vp ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
+   $ unzip ~/terraform-provider-conjur_0.6.7-4_darwin_arm64.zip -d ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
+   $
+   ```
+3. Create a `.terraformrc` file in the user's home:
+   ```hcl
+   provider_installation {
+     filesystem_mirror {
+       path    = "/Users/example/.terraform.d/plugins"
+       include = ["localhost/cyberark/conjur"]
+     }
+     direct {
+       exclude = ["localhost/cyberark/conjur"]
+     }
+   }
+   ```
 
 ### Terraform installation
 
@@ -100,7 +133,7 @@ Terraform can be downloaded for free from [here](https://developer.hashicorp.com
 
 Deployments of CML using Terraform were tested using the versions mentioned below on Ubuntu Linux and macOS.
 
-```plain
+```bash
 $ terraform version
 Terraform v1.8.0
 on darwin_arm64

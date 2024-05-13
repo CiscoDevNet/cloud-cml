@@ -48,8 +48,8 @@ cluster:
 secret:
   # At this time, 'vault', 'conjur' and 'dummy' are supported secrets managers.
   # Make sure that you also run the prepare.sh / prepare.bat script, otherwise
-  # a 'raw_secret' will be used.  If 'raw_secret' is not defined, a 
-  # random_password will be used.
+  # a 'raw_secret' will be used.  If 'raw_secret' is not defined, a random
+  # password will be used.
   # https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password
   #manager:  vault
   #manager:  conjur
@@ -64,49 +64,48 @@ secret:
     # Set this to true to prevent the creation of ephemeral child token used by this provider.
     skip_child_token: true
 
-  # These are the secrets that will be used by the CML instances.  This key 
+  # These are the secrets that will be used by the CML instances.  This key
   # gets mapped to the main configuration under 'secrets'.  The values are
-  # filled in by the secrets manager and are accessible using the 'secret'.
-  # For example, the 'app' password is accessed using 'secrets.app.secret'.
-  # The SmartLicense token is accessed using
-  # 'secrets.smartlicense_token.secret'.
+  # filled in by the secrets manager and are accessible using the 'secret'. For
+  # example, the 'app' password is accessed using 'secrets.app.secret'. The
+  # SmartLicense token is accessed using 'secrets.smartlicense_token.secret'.
   secrets:
     app:
       username: admin
-      # Used with dummy secret manager.  If unspecified, a random 
-      # password will be generated. You need to escape special chars:
+      # Used with dummy secret manager.  If unspecified, a random password will
+      # be generated. You need to escape special chars:
       #raw_secret: '\"!@$%'
-      raw_secret: your-secret-password
-      # Path to secret, used with both Vault and Conjur
+      #raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur:
       #path: example-org/example-project/admin_password
-      # Used with Vault only
+      # Used with Vault only:
       #field: secret
 
     sys:
       username: sysadmin
-      # Used with dummy secret manager.  If unspecified, a random 
-      # password will be generated.
-      raw_secret: your-secret-password
-      # Path to secret, used with both Vault and Conjur
+      # Used with dummy secret manager.  If unspecified, a random password will
+      # be generated.
+      #raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur:
       #path: example-org/example-project/sysadmin_password
-      # Used with Vault only
+      # Used with Vault only:
       #field: secret
 
     smartlicense_token:
       # Only used with dummy secret manager
       raw_secret: your-smart-licensing-token
-      # Path to secret, used with both Vault and Conjur
+      # Path to secret, used with both Vault and Conjur:
       #path: example-org/example-project/smartlicense_token
-      # Used with Vault only
+      # Used with Vault only:
       #field: token
 
     cluster:
-      # Used with dummy secret manager.  If unspecified, a random 
-      # password will be generated.
-      raw_secret: your-secret-password
-      # Path to secret, used with both Vault and Conjur
+      # Used with dummy secret manager.  If unspecified, a random password will
+      # be generated.
+      #raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur:
       #path: example-org/example-project/cluster_secret
-      # Used with Vault only
+      # Used with Vault only:
       #field: secret
 
 app:
@@ -119,11 +118,6 @@ app:
   customize:
     # - 00-patch_vmx.sh
     - 99-dummy.sh
-
-sys:
-  # **No longer used, see the secret manager section above**
-  #user: sysadmin
-  #pass: your-secret-password
 
 license:
   flavor: CML_Enterprise

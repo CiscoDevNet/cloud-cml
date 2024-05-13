@@ -330,7 +330,7 @@ As there are no instances running in this case, the output is empty. The importa
 
 ### Configuration file
 
-CML specific settings are specified in the configuration file `config.yml`.
+CML specific settings are specified in the configuration file `config.yml`.  See also [VPC support](#vpc-support) and [Cluster support](#cluster-suport) sections further down in the document.
 
 #### AWS section
 
@@ -340,8 +340,11 @@ This holds the various configurations for the EC2 instance and S3 bucket to be u
 - `aws.region`. This defines the region of the bucket and typically matches the region of the AWS CLI as configured above. It also defines the region where the EC2 instances are created
 - `aws.flavor`. The flavor / instance type to be used for the AWS CML instance. Typically a metal instance
 - `aws.profile`. The name of the permission profile to be used for the instance. This needs to permit access to the S3 bucket with the software and reference platforms. In the example given above, this was named "s3-access-for-ec2"
-- `aws.keyname`. SSH key name which needs to be installed on AWS EC2. This key will be injected into the instance using cloud-init.
-- `aws.disk_size`. The size of the disk in gigabytes. 64 is a good starting value but this truly depends on the kind of nodes and the planned instance lifetime.
+
+#### Common section
+
+- `common.keyname`. SSH key name which needs to be installed on AWS EC2. This key will be injected into the instance using cloud-init.
+- `common.disk_size`. The size of the disk in gigabytes. 64 is a good starting value but this truly depends on the kind of nodes and the planned instance lifetime.
 
 In theory, the EC2 instance can be run in a different region than the region of the bucket where the software is stored. The tooling, however, assumes that both are in the same region.
 
@@ -353,12 +356,14 @@ In theory, the EC2 instance can be run in a different region than the region of 
 
 Key name `controller_hostname`. Name of the instance, standard hostname rules apply.
 
+#### Secret section
+
+See the top level [README](/README.md) for information about secrets used throughout the CML cloud tooling.
+
 #### App section
 
 Within the app section, the following keys must be set with the correct values:
 
-- `app.user` username of the admin user (typically "admin") for UI access
-- `app.pass` password of the admin user
 - `app.software` the filename of the CML .pkg package with the software, stored in the specified S3 bucket at the top level
 - `app.customize` a list of scripts, located in the `scripts` folder which will be run as part of the instance creation to customize the install
 
@@ -374,19 +379,11 @@ There's also a dummy entry in that list as the list must have at least one eleme
 > [!NOTE]
 > AWS userdata is limited to 16KB of data (Base64 encoded).  That limit is easily reached.  If more customization is done with additional scripts (like certificate installation or system customization), then it's likely to run into this limit.  The tooling will eventually need to copy the script bundle to storage (S3) and download it from there during server bring-up (this is not done today!).  See [this SO post](https://stackoverflow.com/questions/72099325/bypassing-16kb-ec2-user-data-limitation).
 
-#### Sys section
-
-In this section, the OS user and password are defined.
-
-- `sys.user` username of the OS user (typically "sysadmin") for Cockpit and OS level maintenance access
-- `sys.pass` the associated password
-
 #### License section
 
 This holds the license that should be applied to the instance. It consists of three keys:
 
 - `license.flavor`: either `CML_Enterprise`, `CML_Education`, `CML_Personal` or `CML_Personal40` are acceptable
-- `license.token`: the Smart Licensing token
 - `license.nodes`: the number of *additional* nodes, not applicable for the personal flavors.
 
 #### Refplat section
@@ -518,27 +515,27 @@ There's also a new variable, `allowed_ipv4_subnets` which defines a list of pref
 
 Cluster support has been added to AWS with version 0.3.0.   This should be considered even more experimental than the rest of the tool chain.  A 'cluster' configuration section has been added to the configuration file.  The following tables describe the available attributes / settings:
 
-| Attribute               | Type    | Description / notes                                          |
-| ----------------------- | ------- | ------------------------------------------------------------ |
-| enable_cluster          | boolean | If set to true, then a cluster will be created               |
-| secret                  | string  | the common secret for computes to register with the controller |
-| allow_vms_on_controller | boolean | If set to false, then controllers will not run any node VMs, only computes will |
-| number_of_compute_nodes | int     | Amount of compute nodes to be created                        |
+| Attribute                       | Type    | Description / notes                                          |
+| ------------------------------- | ------- | ------------------------------------------------------------ |
+| cluster.enable_cluster          | boolean | If set to true, then a cluster will be created               |
+| cluster.allow_vms_on_controller | boolean | If set to false, then controllers will not run any node VMs, only computes will |
+| cluster.number_of_compute_nodes | int     | Amount of compute nodes to be created                        |
+| secrets.app.cluster             | string  | the common secret for computes to register with the controller |
 
 And here's the attributes of the 'aws' configuration dictionary:
 
-| Attribute                              | Type    | Description / notes                                          |
-| -------------------------------------- | ------- | ------------------------------------------------------------ |
-| region                                 | string  | as before                                                    |
-| availability_zone                      | string  | **new:** required for VPC creation                           |
-| bucket                                 | string  | as before                                                    |
-| flavor                                 | string  | as before, used for the controller                           |
-| flavor_compute                         | string  | **new:** flavor to use for the computes                      |
-| profile                                | string  | as before                                                    |
-| Public_vpc_ipv4_cidr                   | string  | **new:** IPv4 prefix to use with the VPC (new, not using the default VPC anymore) |
-| enable_ebs_encryption                  | boolean | **new:** sets the encryption flag for block storage          |
-| spot_instances.use_spot_for_controller | boolean | **new:** whether the controller should use a spot instance   |
-| spot_instances.use_spot_for_computes   | boolean | **new:** whether all the computes should use a spot instances |
+| Attribute                                  | Type    | Description / notes                                          |
+| ------------------------------------------ | ------- | ------------------------------------------------------------ |
+| aws.region                                 | string  | as before                                                    |
+| aws.availability_zone                      | string  | **new:** required for VPC creation                           |
+| aws.bucket                                 | string  | as before                                                    |
+| aws.flavor                                 | string  | as before, used for the controller                           |
+| aws.flavor_compute                         | string  | **new:** flavor to use for the computes                      |
+| aws.profile                                | string  | as before                                                    |
+| aws.public_vpc_ipv4_cidr                   | string  | **new:** IPv4 prefix to use with the VPC (new, not using the default VPC anymore) |
+| aws.enable_ebs_encryption                  | boolean | **new:** sets the encryption flag for block storage          |
+| aws.spot_instances.use_spot_for_controller | boolean | **new:** whether the controller should use a spot instance   |
+| aws.spot_instances.use_spot_for_computes   | boolean | **new:** whether all the computes should use a spot instances |
 
 Before deploying a cluster, it is strongly recommended to go with an all-in-one first to verify that all the required pieces (software, images, configuration, ...) are in place and work properly.
 
@@ -728,7 +725,7 @@ Software upgrade or migration is **not supported** for cloud instances. We advis
 
 CML cloud instances with the default networking have only one external IP address allocated. In addition, it's mandatory that no L2 frames leak into the outside network as this could disable access to the management IP address.
 
-For this reason, CML cloud instances by default only have the NAT network available. Ensure that all external connectors use the NAT (`virbr0`) network and not the bridge network (`bridge0`).
+For this reason, CML cloud instances only have the NAT network available by default. Ensure that all external connectors use the NAT (`virbr0`) network and not the bridge network (`bridge0`).
 
 In case of advanced VPC configuration with additional networks and NICs inside of the CML controller, bridging could be set up manually. This is out of scope for this documentation / tooling.
 
