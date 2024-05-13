@@ -46,6 +46,54 @@ The first step is unfortunately required, since it is impossible to dynamically 
 
 The default "out-of-the-box" configuration is AWS, so if you want to run on Azure, don't forget to run the prepare script.
 
+#### External Secrets Managers
+
+> [!WARNING]
+> It is a best practice to **not** keep your CML secrets and passwords in Git.  Rather you should keep them in an external secrets manager such as [Hashicorp Vault](https://www.vaultproject.io/) or [CyberArk Conjur](https://www.conjur.org/).  You can refer to the secret maintained in the secrets manager by updating `config.yml` appropriately.  If you use the `dummy` secrets manager, it will use the `raw_secret` as specified in the `config.yml` file, and the secrets will **not** be protected.
+> ```yaml
+> secret:
+>   manager: conjur
+>   secrets:
+>     app:
+>       username: admin
+>       # Example using Conjur
+>       path: example-org/example-project/secret/admin_password
+> ```
+> Refer to the `.envrc.example` file for examples to set up environment variables to use an external secrets manager.
+>
+> If you want random passwords to be generated when applying, based on [random_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password), leave the `raw_secret` undefined:
+> ```yaml
+> secret:
+>   manager: dummy
+>   secrets:
+>     app:
+>       username: admin
+>       # raw_secret: # Undefined
+> ```
+> You can retrieve the generated passwords after applying with `terraform output cml2secrets`.
+
+> [!IMPORTANT]
+> CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`.  These steps are only required if using CyberArk Conjur as an external secrets manager.
+>
+> 1. Download the [CyberArk Conjur provider](https://github.com/cyberark/terraform-provider-conjur/releases).
+> 2. Copy the custom provider to `~/.terraform.d/plugins/localhost/cyberark/conjur/<version>/<architecture>/terraform-provider-conjur_v<version>`
+> ```
+> mkdir -vp ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
+> unzip ~/terraform-provider-conjur_0.6.7-4_darwin_arm64.zip -d ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
+> ```
+> 3. Create a `.terraformrc` file in the user's home:
+> ```hcl
+> provider_installation {
+>   filesystem_mirror {
+>     path    = "/Users/example/.terraform.d/plugins"
+>     include = ["localhost/cyberark/conjur"]
+>   }
+>   direct {
+>     exclude = ["localhost/cyberark/conjur"]
+>   }
+> }
+> ```
+
 ### Terraform installation
 
 Terraform can be downloaded for free from [here](https://developer.hashicorp.com/terraform/downloads). This site has also instructions how to install it on various supported platforms.
@@ -61,6 +109,8 @@ on darwin_arm64
 + provider registry.terraform.io/hashicorp/azurerm v3.99.0
 + provider registry.terraform.io/hashicorp/cloudinit v2.3.3
 + provider registry.terraform.io/hashicorp/random v3.6.1
++ provider registry.terraform.io/hashicorp/vault v4.2.0
++ provider localhost/cyberark/conjur v0.6.7
 $
 ```
 

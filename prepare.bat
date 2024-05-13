@@ -21,7 +21,8 @@ if /i "%answer%"=="y" (
 
 :start
 cd modules\deploy
-call :ask_yes_no "Enable AWS?"
+
+call :ask_yes_no "Cloud - Enable AWS?"
 if errorlevel 1 (
     echo Enabling AWS.
     copy aws-on.t-f aws.tf
@@ -30,7 +31,7 @@ if errorlevel 1 (
     copy aws-off.t-f aws.tf
 )
 
-call :ask_yes_no "Enable Azure?"
+call :ask_yes_no "Cloud - Enable Azure?"
 if errorlevel 1 (
     echo Enabling Azure.
     copy azure-on.t-f azure.tf
@@ -39,3 +40,22 @@ if errorlevel 1 (
     copy azure-off.t-f azure.tf
 )
 
+cd ..\..
+cd modules\secrets
+
+call :ask_yes_no "External Secrets Manager - Enable Conjur?"
+if errorlevel 1 (
+    echo Enabling Conjur.
+    copy conjur-on.t-f conjur.tf
+) else (
+    echo Disabling Conjur.
+    copy conjur-off.t-f conjur.tf
+)
+call :ask_yes_no "External Secrets Manager - Enable Vault?"
+if errorlevel 1 (
+    echo Enabling Vault.
+    copy vault-on.t-f vault.tf
+) else (
+    echo Disabling Vault.
+    copy vault-off.t-f vault.tf
+)
