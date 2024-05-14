@@ -39,6 +39,11 @@ write_files:
     permissions: "0700"
     content: |
       ${indent(6, interface_fix)}
+  - path: /provision/bridge_interfaces.py
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, bridge_int)}
   - path: /etc/virl2-base-config.yml
     owner: root:root
     permissions: "0644"

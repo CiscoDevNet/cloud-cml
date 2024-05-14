@@ -17,6 +17,11 @@ aws:
   flavor_compute: m5zn.metal
   profile: permission-profile-goes-here
   public_vpc_ipv4_cidr: 10.0.0.0/16
+  enable_ebs_encryption: true
+  number_of_bridge_enis: 2
+  first_bridge_ip: 10
+  # currently broken (TF cannot assign IPv6 address and prefix at the same time)
+  #ipv6_prefix_count: 0
   enable_ebs_encryption: false
   spot_instances:
     use_spot_for_controller: false
@@ -51,9 +56,9 @@ secret:
   # a 'raw_secret' will be used.  If 'raw_secret' is not defined, a random
   # password will be used.
   # https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password
-  #manager:  vault
-  #manager:  conjur
-  manager:  dummy
+  #manager: vault
+  #manager: conjur
+  manager: dummy
 
   conjur:
 

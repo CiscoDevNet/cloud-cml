@@ -9,6 +9,18 @@ locals {
     for i in range(1, var.options.cfg.cluster.number_of_compute_nodes + 1) :
     format("%s-%d", var.options.cfg.cluster.compute_hostname_prefix, i)
   ]
+  # Generate private IP for the bridge interfaces, with the static last octet
+  private_ips = [
+    for idx in range(var.options.cfg.aws.number_of_bridge_enis) :
+    join(".",
+      [
+        split(".", cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, idx + 2))[0],
+        split(".", cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, idx + 2))[1],
+        split(".", cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, idx + 2))[2],
+        var.options.cfg.aws.first_bridge_ip
+      ]
+    )
+  ]
   # Late binding required as the token is only known within the module.
   # (Azure specific)
   vars = templatefile("${path.module}/../data/vars.sh", {
@@ -58,6 +70,7 @@ locals {
     copyfile      = var.options.copyfile
     del           = var.options.del
     interface_fix = var.options.interface_fix
+    bridge_int    = var.options.bridge_int
     extras        = var.options.extras
     hostname      = var.options.cfg.common.controller_hostname
     path          = path.module
@@ -71,6 +84,7 @@ locals {
     copyfile      = var.options.copyfile
     del           = var.options.del
     interface_fix = var.options.interface_fix
+    bridge_int    = var.options.bridge_int
     extras        = var.options.extras
     hostname      = local.compute_hostnames[i]
     path          = path.module
@@ -219,6 +233,41 @@ resource "aws_security_group" "sg-tf-cluster-int" {
   ]
 }
 
+resource "aws_security_group" "sg-tf-bridge-int" {
+  name        = "tf-sg-cml-bridge-int-${var.options.rand_id}"
+  description = "Allowing all IPv4/IPv6 traffic on the bridge interface"
+  tags = {
+    Name = "tf-sg-cml-bridge-int-${var.options.rand_id}"
+  }
+  vpc_id = aws_vpc.main-vpc.id
+  egress = [
+    {
+      "description" : "any",
+      "from_port" : 0,
+      "to_port" : 0
+      "protocol" : "-1",
+      "cidr_blocks" : ["0.0.0.0/0"],
+      "ipv6_cidr_blocks" : ["::/0"],
+      "prefix_list_ids" : [],
+      "security_groups" : [],
+      "self" : false,
+    }
+  ]
+  ingress = [
+    {
+      "description" : "any",
+      "from_port" : 0,
+      "to_port" : 0
+      "protocol" : "-1",
+      "cidr_blocks" : ["0.0.0.0/0"],
+      "ipv6_cidr_blocks" : ["::/0"],
+      "prefix_list_ids" : [],
+      "security_groups" : [],
+      "self" : false,
+    }
+  ]
+}
+
 ### Non default VPC configuration
 #------------- VPC ----------------------------------------
 resource "aws_vpc" "main-vpc" {
@@ -247,7 +296,7 @@ resource "aws_route_table" "for_public_subnet" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.public_igw.id
   }
-  tags = { "Name" = "CML-public-${var.options.rand_id}" }
+  tags = { "Name" = "CML-public-rt-${var.options.rand_id}" }
 }
 
 resource "aws_route_table_association" "public_subnet" {
@@ -263,6 +312,59 @@ resource "aws_network_interface" "pub_int_cml" {
 resource "aws_eip" "server_eip" {
   network_interface = aws_network_interface.pub_int_cml.id
   tags              = { "Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server" }
+}
+
+resource "aws_subnet" "bridge_subnet" {
+  availability_zone = var.options.cfg.aws.availability_zone
+  cidr_block        = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, count.index + 2)
+  vpc_id            = aws_vpc.main-vpc.id
+  count             = var.options.cfg.aws.number_of_bridge_enis
+  tags              = { "Name" = "CML-bridge-${count.index}-${var.options.rand_id}" }
+  # IPv6 configuration (applies when count.index is 0 for bridge-eni-0)
+  ipv6_cidr_block = count.index == 0 ? cidrsubnet(aws_vpc.main-vpc.ipv6_cidr_block, 8, 2) : null
+}
+
+resource "aws_network_interface" "bridge_eni_int" {
+  count             = var.options.cfg.aws.number_of_bridge_enis
+  subnet_id         = aws_subnet.bridge_subnet[count.index].id
+  private_ips       = [local.private_ips[count.index]]
+  source_dest_check = false
+  security_groups   = [aws_security_group.sg-tf-bridge-int.id]
+  tags              = { "Name" = "CML-bridge-eni-${count.index}-${var.options.rand_id}" }
+  # IPv6 configuration (applies when count.index is 0 for bridge-eni-0)
+  # Currently broken (TF cannot assign IPv6 address and prefix at the same time)
+  # ipv6_prefix_count  = count.index == 0 ? var.options.cfg.aws.ipv6_prefix_count : 0
+  ipv6_address_count = count.index == 0 ? 1 : 0
+  attachment {
+    instance     = aws_instance.cml_controller.id
+    device_index = count.index + 2
+  }
+}
+
+#-------------IPv6 routing and Egress GW fro bridge-eni-0 ----------------------------------------
+
+resource "aws_egress_only_internet_gateway" "ipv6_eigw" {
+  vpc_id = aws_vpc.main-vpc.id
+  tags   = { "Name" = "CML-eigw-${var.options.rand_id}" }
+  count  = var.options.cfg.aws.number_of_bridge_enis > 0 ? 1 : 0
+
+}
+
+resource "aws_route_table" "for_bridge_subnet" {
+  vpc_id = aws_vpc.main-vpc.id
+  route {
+    ipv6_cidr_block = "::/0"
+    gateway_id      = aws_egress_only_internet_gateway.ipv6_eigw[0].id
+  }
+  tags  = { "Name" = "CML-ipv6-rt-${var.options.rand_id}" }
+  count = var.options.cfg.aws.number_of_bridge_enis > 0 ? 1 : 0
+
+}
+
+resource "aws_route_table_association" "bridge_subnet_route_assoc" {
+  subnet_id      = aws_subnet.bridge_subnet[0].id
+  route_table_id = aws_route_table.for_bridge_subnet[0].id
+  count          = var.options.cfg.aws.number_of_bridge_enis > 0 ? 1 : 0
 }
 
 #-------------Compute subnet, NAT GW, routing and interfaces ----------------------------------------
