@@ -6,7 +6,6 @@
 # All rights reserved.
 #
 
-
 source /provision/common.sh
 source /provision/copyfile.sh
 source /provision/vars.sh
@@ -41,8 +40,9 @@ while [ $attempts -gt 0 ]; do
     if [ $status -eq 200 ]; then
         break
     fi
+    sleep 5
     echo "trying again... ($attempts)"
-    (( attempts-- ))
+    ((attempts--))
 done
 
 echo
@@ -50,7 +50,7 @@ echo
 copyfile ${CFG_HN}-fullchain.pem /tmp/fullchain.pem
 copyfile ${CFG_HN}-privkey.pem /tmp/privkey.pem
 
-if openssl x509 </tmp/fullchain.pem -text | grep ${CFG_HN}; then
+if openssl x509 -text </tmp/fullchain.pem | grep ${CFG_HN}; then
     mkdir -p /etc/letsencrypt/live/$CFG_HN
     mv /tmp/fullchain.pem /etc/letsencrypt/live/$CFG_HN/fullchain.pem
     mv /tmp/privkey.pem /etc/letsencrypt/live/$CFG_HN/privkey.pem
@@ -85,4 +85,3 @@ cat /etc/letsencrypt/live/$CFG_HN/privkey.pem \
 # reload affected services
 systemctl reload nginx
 systemctl restart cockpit
-

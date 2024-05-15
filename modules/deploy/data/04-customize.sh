@@ -68,4 +68,3 @@ EOF
 export HOME=/var/local/virl2
 export CFG_APP_PASS CFG_COMMON_HOSTNAME
 python3 $HOME/users.py
-

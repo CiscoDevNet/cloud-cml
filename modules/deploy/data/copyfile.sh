@@ -24,8 +24,6 @@ function copyfile() {
             LOC="https://${CFG_AZURE_STORAGE_ACCOUNT}.blob.core.windows.net/${CFG_AZURE_CONTAINER_NAME}"
             azcopy copy --output-level=quiet "$LOC/$SRC$CFG_SAS_TOKEN" $DST $RECURSIVE
             ;;
-        *)
-            ;;
+        *) ;;
     esac
 }
-

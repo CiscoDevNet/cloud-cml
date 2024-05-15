@@ -6,6 +6,7 @@
 # All rights reserved.
 #
 
+# :%!shfmt -ci -i 4 -
 # set -x
 # set -e
 
@@ -84,7 +85,7 @@ function base_setup() {
         sleep 5
         # substate=$(systemctl show --property=SubState --value virl2-initial-setup.service)
         # if [ "$substate" = "exited" ]; then
-        if [ ! -f /etc/.virl2_unconfigured ];  then
+        if [ ! -f /etc/.virl2_unconfigured ]; then
             echo "initial setup is done"
             break
         fi
@@ -110,11 +111,6 @@ function base_setup() {
     rm /etc/netplan/00-cml2-base.yaml
     netplan apply
 
-    # AWS specific (?):
-    # For troubleshooting. To allow console access on AWS, the root user needs a
-    # password. Note: not all instance types / flavors provide a serial console!
-    # echo "root:secret-password-here" | /usr/sbin/chpasswd
-
     # no PaTTY on computes
     if ! is_controller; then
         return 0
@@ -122,7 +118,7 @@ function base_setup() {
 
     # enable and configure PaTTY
     if [ "${CFG_COMMON_ENABLE_PATTY}" = "true" ]; then
-        sleep 5  # wait for ip address acquisition
+        sleep 5 # wait for ip address acquisition
         GWDEV=$(ip -json route | jq -r '.[]|select(.dst=="default")|(.metric|tostring)+"\t"+.dev' | sort | head -1 | cut -f2)
         echo "OPTS=\"-bridge $GWDEV -poll 5\"" >>/etc/default/patty.env
         sed -i '/^After/iWants=virl2-patty.service' /lib/systemd/system/virl2.target
@@ -239,8 +235,12 @@ function postprocess() {
     fi
 }
 
-echo "### cml.sh start"
-echo "root:secret-password-here" | /usr/sbin/chpasswd
+echo "### Provisioning via cml.sh starts"
+
+# AWS specific (?):
+# For troubleshooting. To allow console access on AWS, the root user needs a
+# password. Note: not all instance types / flavors provide a serial console!
+# echo "root:secret-password-here" | /usr/sbin/chpasswd
 
 # Ensure non-interactive Debian package installation
 APT_OPTS="-o Dpkg::Options::=--force-confmiss -o Dpkg::Options::=--force-confnew"
@@ -250,16 +250,16 @@ export APT_OPTS DEBIAN_FRONTEND
 
 # Run the appropriate pre-setup function
 case $CFG_TARGET in
-aws)
-    setup_pre_aws
-    ;;
-azure)
-    setup_pre_azure
-    ;;
-*)
-    echo "unknown target!"
-    exit 1
-    ;;
+    aws)
+        setup_pre_aws
+        ;;
+    azure)
+        setup_pre_azure
+        ;;
+    *)
+        echo "unknown target!"
+        exit 1
+        ;;
 esac
 
 # Only run the base setup when there's a provision directory both with
