@@ -417,6 +417,7 @@ resource "aws_instance" "cml_controller" {
   key_name             = var.options.cfg.common.key_name
   tags                 = { Name = "CML-controller-${var.options.rand_id}" }
   ebs_optimized        = "true"
+  depends_on           = [aws_nat_gateway.compute_nat_gw]
   dynamic "instance_market_options" {
     for_each = var.options.cfg.aws.spot_instances.use_spot_for_controller ? [1] : []
     content {
@@ -446,7 +447,7 @@ resource "aws_instance" "cml_controller" {
   user_data = data.cloudinit_config.cml_controller.rendered
 }
 
-resource "aws_instance" "cml-compute" {
+resource "aws_instance" "cml_compute" {
   instance_type        = var.options.cfg.aws.flavor_compute
   ami                  = data.aws_ami.ubuntu.id
   iam_instance_profile = var.options.cfg.aws.profile
@@ -454,7 +455,7 @@ resource "aws_instance" "cml-compute" {
   tags                 = { Name = "CML-compute-${count.index + 1}-${var.options.rand_id}" }
   ebs_optimized        = "true"
   count                = var.options.cfg.cluster.number_of_compute_nodes
-  depends_on           = [aws_instance.cml_controller]
+  depends_on           = [aws_instance.cml_controller, aws_nat_gateway.compute_nat_gw]
   dynamic "instance_market_options" {
     for_each = var.options.cfg.aws.spot_instances.use_spot_for_computes ? [1] : []
     content {

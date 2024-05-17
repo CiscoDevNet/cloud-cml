@@ -10,6 +10,11 @@ Lists the changes for the tool releases.
   a `cluster` section has been added to the config file.  Some keywords
   have changed (`hostname` -> `controller_hostname`).  See also a new
   "Cluster" section in the [AWS documentation](documentation/AWS.md)
+- introduce secret managers for storing secrets
+  - supported are dummy (use raw_secrets, as before), Conjur and Vault
+  - also support randomly generated secrets
+  - by default, the dummy module with random secrets is configured
+  - the license token secret needs to be configured regardless
 - use the CML .pkg software distribution file instead of multiple .deb packages
   (this is a breaking change -- you need to change the configuration and upload
   the .pkg to cloud storage instead of the .deb. `deb` -> `software`
@@ -23,6 +28,8 @@ Lists the changes for the tool releases.
 - explicitly disable bridge0 and also disable the virl2-bridge-setup.py script
   by inserting exit() as the 2nd line.  This will ensure that service restarts
   will not try to re-create the bridge0 interface.
+- each instance will be rebooted at the end of cloud-init to come up with newly
+  installed software / kernel and in a clean state.
 
 ## Version 0.2.1
 
