@@ -51,3 +51,6 @@ write_files:
     content: |
       ${indent(6, file("${path}/../data/${script}"))}
   %{ endfor }
+
+power_state:
+  mode: reboot

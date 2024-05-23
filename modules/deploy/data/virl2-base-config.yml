@@ -18,3 +18,4 @@ is_controller: ${is_controller}
 primary_interface: ""
 ssh_server: true
 use_ipv4_dhcp: true
+skip_primary_bridge: true

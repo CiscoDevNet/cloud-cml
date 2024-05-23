@@ -417,7 +417,7 @@ resource "aws_instance" "cml_controller" {
   key_name             = var.options.cfg.common.key_name
   tags                 = { Name = "CML-controller-${var.options.rand_id}" }
   ebs_optimized        = "true"
-  depends_on           = [aws_nat_gateway.compute_nat_gw]
+  depends_on           = [aws_route_table_association.public_subnet]
   dynamic "instance_market_options" {
     for_each = var.options.cfg.aws.spot_instances.use_spot_for_controller ? [1] : []
     content {
@@ -455,7 +455,7 @@ resource "aws_instance" "cml_compute" {
   tags                 = { Name = "CML-compute-${count.index + 1}-${var.options.rand_id}" }
   ebs_optimized        = "true"
   count                = var.options.cfg.cluster.number_of_compute_nodes
-  depends_on           = [aws_instance.cml_controller, aws_nat_gateway.compute_nat_gw]
+  depends_on           = [aws_instance.cml_controller, aws_route_table_association.compute_subnet_assoc]
   dynamic "instance_market_options" {
     for_each = var.options.cfg.aws.spot_instances.use_spot_for_computes ? [1] : []
     content {

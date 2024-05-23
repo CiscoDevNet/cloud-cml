@@ -5,7 +5,7 @@ Lists the changes for the tool releases.
 ## Version 0.3.0
 
 - allow cluster deployments on AWS
-  - create and use a non-default VPC
+  - manage and use a non-default VPC
   - allow to enable EBS encryption (fixes #8)
   a `cluster` section has been added to the config file.  Some keywords
   have changed (`hostname` -> `controller_hostname`).  See also a new
@@ -27,7 +27,8 @@ Lists the changes for the tool releases.
   main cml.sh file as well as in the customization scripts).
 - explicitly disable bridge0 and also disable the virl2-bridge-setup.py script
   by inserting exit() as the 2nd line.  This will ensure that service restarts
-  will not try to re-create the bridge0 interface.
+  will not try to re-create the bridge0 interface. This will be obsolete / a
+  no-op with 2.7.1 which includes a "skip bridge creation" flag.
 - each instance will be rebooted at the end of cloud-init to come up with newly
   installed software / kernel and in a clean state.
 

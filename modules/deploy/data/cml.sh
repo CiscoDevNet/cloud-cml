@@ -106,9 +106,12 @@ function base_setup() {
     rm -f /provision/*.pkg /provision/*.deb /tmp/*.deb
 
     # disable bridge setup in the cloud instance (controller and computes)
+    # (this is a no-op with 2.7.1 as it skips bridge creation entirely)
     /usr/local/bin/virl2-bridge-setup.py --delete
     sed -i /usr/local/bin/virl2-bridge-setup.py -e '2iexit()'
+    # remove the CML specific netplan config
     rm /etc/netplan/00-cml2-base.yaml
+    # apply to ensure gateway selection below works
     netplan apply
 
     # no PaTTY on computes
@@ -273,6 +276,6 @@ fi
 if [ ! -f /tmp/PACKER_BUILD ]; then
     cml_configure ${CFG_TARGET}
     postprocess
-    netplan apply
-    systemctl reboot
+    # netplan apply
+    # systemctl reboot
 fi
