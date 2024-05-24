@@ -76,6 +76,7 @@ locals {
   })]
 
   main_vpc = length(var.options.cfg.aws.vpc_id) > 0 ? data.aws_vpc.selected[0] : aws_vpc.main_vpc[0]
+  main_gw_id = length(var.options.cfg.aws.gw_id) > 0 ? var.options.cfg.aws.gw_id : aws_internet_gateway.public_igw[0].id
 
   cml_ingress = [
     {
@@ -239,6 +240,7 @@ resource "aws_vpc" "main_vpc" {
 
 #------------------- public subnet, IGW and routing ---------------------------
 resource "aws_internet_gateway" "public_igw" {
+  count  = length(var.options.cfg.aws.gw_id) > 0 ? 0 : 1
   vpc_id = local.main_vpc.id
   tags   = { "Name" = "CML-igw-${var.options.rand_id}" }
 }
@@ -255,7 +257,7 @@ resource "aws_route_table" "for_public_subnet" {
   vpc_id = local.main_vpc.id
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.public_igw.id
+    gateway_id = local.main_gw_id
   }
   tags = { "Name" = "CML-public-rt-${var.options.rand_id}" }
 }

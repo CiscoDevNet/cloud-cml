@@ -341,6 +341,31 @@ This holds the various configurations for the EC2 instance and S3 bucket to be u
 - `aws.flavor`. The flavor / instance type to be used for the AWS CML instance. Typically a metal instance
 - `aws.profile`. The name of the permission profile to be used for the instance. This needs to permit access to the S3 bucket with the software and reference platforms. In the example given above, this was named "s3-access-for-ec2"
 - `aws.vpc_id`. If this is the empty string, a custom VPC will be created and used.  If a VPC ID is specified, then instead of creating a new VPC, the specified VPC will be used instead
+- `aws.gw_id`. If this is the empty string, a new Internet gateway will be created and used.  If an ID is specified, then this gateway will be used for the public subnet, where the external interfaces for controller (and computes) are attached to
+
+#### VPC usage
+
+The CML AWS tool chain creates all required network infrastructure including a custom VPC.  This includes
+
+- VPC
+- Internet gateway
+- Security groups
+- Subnets
+- Route tables
+- NAT gateway
+- Transit gateway
+- Multicast domains
+- Addresses and network interfaces
+
+Some of these resources are only created when clustering is enabled.
+
+If a VPC ID is provided in the configuration, then that VPC is used and the required additional resources are attached to it.  However, certain assumptions are made about the existing VPC:
+
+- an Internet gateway exists and is attached to this VPC
+- the IPv4 CIDR prefix associated with this VPC matches the configured CIDR block in the `config.yml`
+- an IPv6 CIDR prefix is associated to this VPC
+
+The CML controller (and computes, if clustering is enabled) will be attached to a new subnet which is attached to the existing VPC, a default route is used to route all traffic from the public subnet.
 
 #### Common section
 
