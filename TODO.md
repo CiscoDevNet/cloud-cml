@@ -11,3 +11,4 @@ Here's a list of things which should be implemented going forward.  This is in n
 
 1. Work around 16kb user data limit in AWS (seems to not be an issue in Azure).
 2. Allow cluster installs (e.g. multiple computes, adding a VPC cluster network).  Works on AWS, thanks to amieczko.
+3. Allow to use an already existing VPC

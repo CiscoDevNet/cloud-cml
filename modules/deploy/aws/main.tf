@@ -15,8 +15,7 @@ locals {
   vars = templatefile("${path.module}/../data/vars.sh", {
     cfg = merge(
       var.options.cfg,
-      # Need to have this as it's referenced in the template.
-      # (Azure specific)
+      # Need to have this as it's referenced in the template (Azure specific)
       { sas_token = "undefined" }
     )
     }
@@ -28,8 +27,7 @@ locals {
     is_compute    = !var.options.cfg.cluster.enable_cluster || var.options.cfg.cluster.allow_vms_on_controller
     cfg = merge(
       var.options.cfg,
-      # Need to have this as it's referenced in the template.
-      # (Azure specific)
+      # Need to have this as it's referenced in the template (Azure specific)
       { sas_token = "undefined" }
     )
     }
@@ -76,6 +74,8 @@ locals {
     hostname      = local.compute_hostnames[i]
     path          = path.module
   })]
+
+  main_vpc = length(var.options.cfg.aws.vpc_id) > 0 ? data.aws_vpc.selected[0] : aws_vpc.main_vpc[0]
 
   cml_ingress = [
     {
@@ -167,7 +167,7 @@ resource "aws_security_group" "sg_tf" {
   tags = {
     Name = "tf-sg-cml-${var.options.rand_id}"
   }
-  vpc_id = aws_vpc.main_vpc.id
+  vpc_id = local.main_vpc.id
   egress = [
     {
       "description" : "any",
@@ -192,7 +192,7 @@ resource "aws_security_group" "sg_tf_cluster_int" {
   tags = {
     Name = "tf-sg-cml-cluster-int-${var.options.rand_id}"
   }
-  vpc_id = aws_vpc.main_vpc.id
+  vpc_id = local.main_vpc.id
   egress = [
     {
       "description" : "any",
@@ -221,9 +221,15 @@ resource "aws_security_group" "sg_tf_cluster_int" {
   ]
 }
 
-### Non default VPC configuration
-#------------- VPC ----------------------------------------
+#----------------- if VPC ID was provided, select it --------------------------
+data "aws_vpc" "selected" {
+  id    = var.options.cfg.aws.vpc_id
+  count = length(var.options.cfg.aws.vpc_id) > 0 ? 1 : 0
+}
+
+#------------------- non-default VPC configuration ----------------------------
 resource "aws_vpc" "main_vpc" {
+  count                            = length(var.options.cfg.aws.vpc_id) > 0 ? 0 : 1
   cidr_block                       = var.options.cfg.aws.public_vpc_ipv4_cidr
   assign_generated_ipv6_cidr_block = true
   tags = {
@@ -231,22 +237,22 @@ resource "aws_vpc" "main_vpc" {
   }
 }
 
-#-------------Public Subnet, IGW and Routing----------------------------------------
+#------------------- public subnet, IGW and routing ---------------------------
 resource "aws_internet_gateway" "public_igw" {
-  vpc_id = aws_vpc.main_vpc.id
+  vpc_id = local.main_vpc.id
   tags   = { "Name" = "CML-igw-${var.options.rand_id}" }
 }
 
 resource "aws_subnet" "public_subnet" {
   availability_zone       = var.options.cfg.aws.availability_zone
   cidr_block              = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 0)
-  vpc_id                  = aws_vpc.main_vpc.id
+  vpc_id                  = local.main_vpc.id
   map_public_ip_on_launch = true
   tags                    = { "Name" = "CML-public-${var.options.rand_id}" }
 }
 
 resource "aws_route_table" "for_public_subnet" {
-  vpc_id = aws_vpc.main_vpc.id
+  vpc_id = local.main_vpc.id
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.public_igw.id
@@ -270,12 +276,12 @@ resource "aws_eip" "server_eip" {
   tags              = { "Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server" }
 }
 
-#-------------Compute subnet, NAT GW, routing and interfaces ----------------------------------------
+#------------- compute subnet, NAT GW, routing and interfaces -----------------
 
 resource "aws_subnet" "compute_nat_subnet" {
   availability_zone = var.options.cfg.aws.availability_zone
   cidr_block        = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 1)
-  vpc_id            = aws_vpc.main_vpc.id
+  vpc_id            = local.main_vpc.id
   tags              = { "Name" = "CML-compute-nat-${var.options.rand_id}" }
   count             = var.options.cfg.cluster.enable_cluster ? 1 : 0
 }
@@ -302,7 +308,7 @@ resource "aws_nat_gateway" "compute_nat_gw" {
 }
 
 resource "aws_route_table" "compute_route_table" {
-  vpc_id = aws_vpc.main_vpc.id
+  vpc_id = local.main_vpc.id
 
   route {
     cidr_block     = "0.0.0.0/0"
@@ -327,13 +333,13 @@ resource "aws_network_interface" "nat_int_cml_compute" {
   count           = var.options.cfg.cluster.number_of_compute_nodes
 }
 
-#-------------Cluster Subnet and interface----------------------------------------
+#-------------------- cluster subnet and interface ----------------------------
 
 resource "aws_subnet" "cluster_subnet" {
   availability_zone               = var.options.cfg.aws.availability_zone
   cidr_block                      = cidrsubnet(var.options.cfg.aws.public_vpc_ipv4_cidr, 8, 255)
-  ipv6_cidr_block                 = cidrsubnet(aws_vpc.main_vpc.ipv6_cidr_block, 8, 1)
-  vpc_id                          = aws_vpc.main_vpc.id
+  ipv6_cidr_block                 = cidrsubnet(local.main_vpc.ipv6_cidr_block, 8, 1)
+  vpc_id                          = local.main_vpc.id
   tags                            = { "Name" = "CML-cluster-${var.options.rand_id}" }
   count                           = var.options.cfg.cluster.enable_cluster ? 1 : 0
   assign_ipv6_address_on_creation = true
@@ -353,7 +359,7 @@ resource "aws_network_interface" "cluster_int_cml_compute" {
   count           = var.options.cfg.cluster.number_of_compute_nodes
 }
 
-### IPv6 mcast support for CML clustering
+#------------------ IPv6 multicast support for CML clustering -----------------
 
 resource "aws_ec2_transit_gateway" "transit_gateway" {
   description                     = "CML Transit Gateway"
@@ -380,7 +386,7 @@ resource "aws_ec2_transit_gateway_multicast_domain" "cml_mcast_domain" {
 
 resource "aws_ec2_transit_gateway_vpc_attachment" "vpc_attachment" {
   transit_gateway_id = aws_ec2_transit_gateway.transit_gateway[0].id
-  vpc_id             = aws_vpc.main_vpc.id
+  vpc_id             = local.main_vpc.id
   subnet_ids         = [aws_subnet.cluster_subnet[0].id]
   ipv6_support       = "enable"
   tags = {

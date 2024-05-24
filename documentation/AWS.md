@@ -1,6 +1,6 @@
 # AWS
 
-Version 0.3.0, April 17 2023
+Version 0.3.0, May 24 2023
 
 This document contains specific configuration steps to deploy a CML instance in AWS. Some sections from the top level document are repeated here with additional detail regarding AWS.
 
@@ -31,15 +31,15 @@ Some of the steps and procedures outlined below are preparation steps and only n
 
 Terraform can be downloaded for free from [here](https://developer.hashicorp.com/terraform/downloads). This site has also instructions how to install it on various supported platforms.
 
-Deployments of CML using Terraform were tested using version 1.8.0 on macOS.
+Deployments of CML using Terraform were tested using version 1.8.4 on macOS.
 
 ```plain
 $ terraform version
-Terraform v1.8.0
+Terraform v1.8.4
 on darwin_arm64
 + provider registry.terraform.io/ciscodevnet/cml2 v0.7.0
-+ provider registry.terraform.io/hashicorp/aws v5.45.0
-+ provider registry.terraform.io/hashicorp/cloudinit v2.3.3
++ provider registry.terraform.io/hashicorp/aws v5.51.0
++ provider registry.terraform.io/hashicorp/cloudinit v2.3.4
 + provider registry.terraform.io/hashicorp/random v3.6.1
 $
 ```
@@ -54,7 +54,7 @@ The AWS CLI can be downloaded from [here](https://docs.aws.amazon.com/cli/latest
 
 ```plain
 $ aws --version
-aws-cli/2.15.38 Python/3.11.9 Darwin/23.4.0 source/arm64 prompt/off
+aws-cli/2.15.56 Python/3.11.9 Darwin/23.5.0 source/arm64
 $
 ```
 
@@ -340,6 +340,7 @@ This holds the various configurations for the EC2 instance and S3 bucket to be u
 - `aws.region`. This defines the region of the bucket and typically matches the region of the AWS CLI as configured above. It also defines the region where the EC2 instances are created
 - `aws.flavor`. The flavor / instance type to be used for the AWS CML instance. Typically a metal instance
 - `aws.profile`. The name of the permission profile to be used for the instance. This needs to permit access to the S3 bucket with the software and reference platforms. In the example given above, this was named "s3-access-for-ec2"
+- `aws.vpc_id`. If this is the empty string, a custom VPC will be created and used.  If a VPC ID is specified, then instead of creating a new VPC, the specified VPC will be used instead
 
 #### Common section
 

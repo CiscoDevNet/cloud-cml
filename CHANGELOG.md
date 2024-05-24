@@ -31,6 +31,8 @@ Lists the changes for the tool releases.
   no-op with 2.7.1 which includes a "skip bridge creation" flag.
 - each instance will be rebooted at the end of cloud-init to come up with newly
   installed software / kernel and in a clean state.
+- add configuration option cfg.aws.vpc_id to specify the VPC ID that should be
+  used. If left empty, then a custom VPC ID will be created (fixes #9)
 
 ## Version 0.2.1
 

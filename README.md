@@ -1,11 +1,19 @@
 # README
 
-Version 0.3.0, May 13 2024
+Version 0.3.0, May 24 2024
 
-This repository includes scripts, tooling and documentation to provision an instance of Cisco Modeling Labs (CML) in various cloud services. Currently supported are Amazon Web Services (AWS) and Microsoft Azure.
+With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML deployments using this tool chain in both clouds.  **The use of this tool is considered experimental**.  The tool has certain requirements and prerequisites which are described in this README included in the repository.
 
 > [!IMPORTANT]
-> The CML deployment procedure and the tool chain / code provided in this repository are **considered "experimental"**. If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
+>
+> **Support:**
+>
+> - For customers with a valid service contract, CML cloud deployments are supported by TAC within the outlined constraints.  Beyond this, support is done with best effort as cloud environments, requirements and policy can differ to a great extent.
+> - With no service contract, support is done on a best effort basis via the issue tracker.
+>
+> **Features and capabilities:** Changes to the deployment tooling will be considered like any other feature by adding them to the product roadmap.  This is done at the discretion of the CML team.
+>
+> **Error reporting:** If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
 
 > [!IMPORTANT]
 > Read the section below about [cloud provider selection](#important-cloud-provider-selection) (prepare script).
