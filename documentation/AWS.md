@@ -361,7 +361,7 @@ Some of these resources are only created when clustering is enabled.
 
 If a VPC ID is provided in the configuration, then that VPC is used and the required additional resources are attached to it.  However, certain assumptions are made about the existing VPC:
 
-- an Internet gateway exists and is attached to this VPC
+- a gateway exists and is attached to this VPC
 - the IPv4 CIDR prefix associated with this VPC matches the configured CIDR block in the `config.yml`
 - an IPv6 CIDR prefix is associated to this VPC
 

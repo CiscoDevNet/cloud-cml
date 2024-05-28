@@ -5,8 +5,9 @@
 #
 
 locals {
+  num_computes = var.options.cfg.enable_cluster ? var.options.cfg.cluster.number_of_compute_nodes : 0
   compute_hostnames = [
-    for i in range(1, var.options.cfg.cluster.number_of_compute_nodes + 1) :
+    for i in range(1, local.num_computes + 1) :
     format("%s-%d", var.options.cfg.cluster.compute_hostname_prefix, i)
   ]
 
@@ -62,7 +63,7 @@ locals {
     path          = path.module
   })
 
-  cloud_config_compute = [for i in range(0, var.options.cfg.cluster.number_of_compute_nodes) : templatefile("${path.module}/../data/cloud-config.txt", {
+  cloud_config_compute = [for i in range(0, local.num_computes) : templatefile("${path.module}/../data/cloud-config.txt", {
     vars          = local.vars
     cml_config    = local.cml_config_compute[i]
     cfg           = var.options.cfg
@@ -75,7 +76,7 @@ locals {
     path          = path.module
   })]
 
-  main_vpc = length(var.options.cfg.aws.vpc_id) > 0 ? data.aws_vpc.selected[0] : aws_vpc.main_vpc[0]
+  main_vpc   = length(var.options.cfg.aws.vpc_id) > 0 ? data.aws_vpc.selected[0] : aws_vpc.main_vpc[0]
   main_gw_id = length(var.options.cfg.aws.gw_id) > 0 ? var.options.cfg.aws.gw_id : aws_internet_gateway.public_igw[0].id
 
   cml_ingress = [
@@ -332,7 +333,7 @@ resource "aws_network_interface" "nat_int_cml_compute" {
   subnet_id       = aws_subnet.compute_nat_subnet[0].id
   security_groups = [aws_security_group.sg_tf.id]
   tags            = { Name = "CML-compute-${count.index + 1}-nat-int-${var.options.rand_id}" }
-  count           = var.options.cfg.cluster.number_of_compute_nodes
+  count           = local.num_computes
 }
 
 #-------------------- cluster subnet and interface ----------------------------
@@ -358,7 +359,7 @@ resource "aws_network_interface" "cluster_int_cml_compute" {
   subnet_id       = aws_subnet.cluster_subnet[0].id
   security_groups = [aws_security_group.sg_tf_cluster_int.id]
   tags            = { Name = "CML-compute-${count.index + 1}-cluster-int-${var.options.rand_id}" }
-  count           = var.options.cfg.cluster.number_of_compute_nodes
+  count           = local.num_computes
 }
 
 #------------------ IPv6 multicast support for CML clustering -----------------
@@ -415,7 +416,7 @@ resource "aws_ec2_transit_gateway_multicast_group_member" "cml_compute_int" {
   group_ip_address                    = "ff02::fb"
   network_interface_id                = aws_network_interface.cluster_int_cml_compute[count.index].id
   transit_gateway_multicast_domain_id = aws_ec2_transit_gateway_multicast_domain_association.cml_association[0].transit_gateway_multicast_domain_id
-  count                               = var.options.cfg.cluster.number_of_compute_nodes
+  count                               = local.num_computes
 }
 
 resource "aws_instance" "cml_controller" {
@@ -462,7 +463,7 @@ resource "aws_instance" "cml_compute" {
   key_name             = var.options.cfg.common.key_name
   tags                 = { Name = "CML-compute-${count.index + 1}-${var.options.rand_id}" }
   ebs_optimized        = "true"
-  count                = var.options.cfg.cluster.number_of_compute_nodes
+  count                = local.num_computes
   depends_on           = [aws_instance.cml_controller, aws_route_table_association.compute_subnet_assoc]
   dynamic "instance_market_options" {
     for_each = var.options.cfg.aws.spot_instances.use_spot_for_computes ? [1] : []
@@ -527,7 +528,7 @@ data "cloudinit_config" "cml_controller" {
 data "cloudinit_config" "cml_compute" {
   gzip          = true
   base64_encode = true # always true if gzip is true
-  count         = var.options.cfg.cluster.number_of_compute_nodes
+  count         = local.num_computes
   part {
     filename     = "userdata.txt"
     content_type = "text/x-shellscript"
