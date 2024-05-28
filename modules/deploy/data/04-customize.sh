@@ -68,4 +68,5 @@ EOF
 
 sleep 15  # wait for licensing to happen
 export CFG_APP_PASS CFG_COMMON_HOSTNAME
+export HOME=/var/local/virl2
 python3 /provision/users.py
