@@ -5,7 +5,7 @@
 #
 
 locals {
-  num_computes = var.options.cfg.enable_cluster ? var.options.cfg.cluster.number_of_compute_nodes : 0
+  num_computes = var.options.cfg.cluster.enable_cluster ? var.options.cfg.cluster.number_of_compute_nodes : 0
   compute_hostnames = [
     for i in range(1, local.num_computes + 1) :
     format("%s-%d", var.options.cfg.cluster.compute_hostname_prefix, i)
