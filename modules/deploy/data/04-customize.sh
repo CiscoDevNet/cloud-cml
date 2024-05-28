@@ -17,7 +17,7 @@ constants="/var/local/virl2/.local/lib/python3.8/site-packages/simple_drivers/co
 sed -i -e'/^STABILIZATION_TIME = 3$/s/3/1/' $constants
 
 # script to create users and resource limits
-cat >/var/local/virl2/users.py <<EOF
+cat >/provision/users.py <<EOF
 #!/usr/bin/env python3
 
 import os
@@ -25,13 +25,14 @@ from time import sleep
 from httpx import HTTPStatusError
 from virl2_client import ClientLibrary
 
+admin = os.getenv("CFG_APP_USER", "")
 password = os.getenv("CFG_APP_PASS", "")
 hostname = os.getenv("CFG_COMMON_HOSTNAME", "")
 
 attempts = 6
 while attempts > 0:
     try:
-        client = ClientLibrary(f"https://{hostname}", "admin", password, ssl_verify=False)
+        client = ClientLibrary(f"https://{hostname}", admin, password, ssl_verify=False)
     except HTTPStatusError as exc:
         print(exc)
         sleep(10)
@@ -65,6 +66,6 @@ for id in range(0, USER_COUNT + 1):
     client.user_management.create_user(f"pod{id}", f"{id:#02}DevWks{id:#02}", resource_pool=rp.id)
 EOF
 
-export HOME=/var/local/virl2
+sleep 15  # wait for licensing to happen
 export CFG_APP_PASS CFG_COMMON_HOSTNAME
-python3 $HOME/users.py
+python3 /provision/users.py

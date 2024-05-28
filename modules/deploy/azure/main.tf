@@ -32,6 +32,7 @@ locals {
     vars          = local.vars
     cml_config    = local.cml_config_controller
     cfg           = var.options.cfg
+    cml           = var.options.cml
     common        = var.options.common
     copyfile      = var.options.copyfile
     del           = var.options.del
@@ -250,13 +251,6 @@ data "azurerm_ssh_public_key" "cml" {
 data "cloudinit_config" "azure_ud" {
   gzip          = true
   base64_encode = true # always true if gzip is true
-
-  part {
-    filename     = "userdata.txt"
-    content_type = "text/x-shellscript"
-
-    content = var.options.cml
-  }
 
   part {
     filename     = "cloud-config.yaml"
