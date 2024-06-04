@@ -2,7 +2,7 @@
 package_update: true
 package_upgrade: true
 
-hostname: ${cfg.common.hostname}
+hostname: ${hostname}
 manage_etc_hosts: true
 
 packages:
@@ -14,6 +14,16 @@ write_files:
     owner: root:root
     permissions: "0644"
     content: '${jsonencode(cfg.refplat)}'
+  - path: /provision/cml.sh
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, cml)}
+  - path: /provision/common.sh
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, common)}
   - path: /provision/copyfile.sh
     owner: root:root
     permissions: "0700"
@@ -29,6 +39,16 @@ write_files:
     permissions: "0700"
     content: |
       ${indent(6, del)}
+  - path: /provision/interface_fix.py
+    owner: root:root
+    permissions: "0700"
+    content: |
+      ${indent(6, interface_fix)}
+  - path: /etc/virl2-base-config.yml
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${indent(6, format("%s\n", cml_config))}
   %{ for script in cfg.app.customize }
   - path: /provision/${script}
     owner: root:root
@@ -36,3 +56,10 @@ write_files:
     content: |
       ${indent(6, file("${path}/../data/${script}"))}
   %{ endfor }
+
+runcmd:
+  - /provision/cml.sh && touch /run/reboot || echo "CML provisioning failed.  Not rebooting"
+
+power_state:
+  mode: reboot
+  condition: test -f /run/reboot

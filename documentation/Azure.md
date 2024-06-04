@@ -1,6 +1,6 @@
 # Azure
 
-Version 0.2.1, February 22 2024
+Version 0.3.0, April 17 2024
 
 This document explains specific configuration steps to deploy a Cisco Modeling Labs (CML) instance in Azure.
 
@@ -12,7 +12,8 @@ The requirements for Azure are mostly identical with those for AWS. Please refer
 
 Once the Azure CLI (`az`) has been installed, it is required to log into Azure with an appropriate account.
 
-> **Note:** It should also be possible to use a service principal with appropriate permissions. However, during the testing/development of the tool chain we did not have access to these resources.
+> [!NOTE]
+> It should also be possible to use a service principal with appropriate permissions. However, during the testing/development of the tool chain we did not have access to these resources.
 
 The below shows sample output (`az` has been configured to provide output JSON encoded via `az configure`):
 
@@ -103,8 +104,8 @@ Also ensure, that the layout of the software matches the required layout as spec
 Note in the screenshot above:
 
 - the `refplat` folder has the reference platform images
-- the `cml2_2.6.1-11_amd64.deb` package is stored in the folder
-- the (optional) `patty_0.2.9_amd64.deb` is also available
+- the `cml2_2.7.0-4_amd64-20.pkg` package is stored in the folder
+- The `hostname-fullchain.pem` and `hostname-privkey.pem` files contain a certificate/key that, if the hostname part of the filename matches the configured controller hostname, will be installed using the `03-letsencrypt.sh` script.
 
 ## Running the deployment
 

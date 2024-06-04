@@ -119,13 +119,7 @@ done
 
 if [ -n "$cmlpkg" ]; then
     dialog --progressbox "Upload software package to bucket" 20 70 < <(
-        tmpdir=$(mktemp --directory)
-        pushd $tmpdir
-        tar xf $cmlpkg --wildcards 'cml2_*.deb'
-        aws s3 cp *.deb s3://${BUCKETNAME}/
-        rm cml2_*.deb
-        popd
-        rmdir $tmpdir
+        aws s3 cp $cmlpkg s3://${BUCKETNAME}/
     )
 fi
 

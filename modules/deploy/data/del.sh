@@ -12,15 +12,13 @@
 # set -x
 # set -e
 
-
 source /provision/vars.sh
-
 
 function cml_remove_license() {
     API="http://ip6-localhost:8001/api/v0"
 
     # re-auth with new password
-    TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \ |
+    TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \  |
         curl -s -d@- $API/authenticate | jq -r)
 
     # de-register the license from the controller
@@ -30,7 +28,6 @@ function cml_remove_license() {
         -H "accept: application/json" \
         -H "Content-Type: application/json"
 }
-
 
 # only de-register when the target is active
 if [ $(systemctl is-active virl2.target) = "active" ]; then

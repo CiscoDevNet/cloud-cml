@@ -1,0 +1,72 @@
+#
+# This file is part of Cisco Modeling Labs
+# Copyright (c) 2024, Cisco Systems, Inc.
+# All rights reserved.
+#
+
+#########
+# Configs
+#########
+#export TF_VAR_cfg_file=""
+#export TF_VAR_cfg_extra_vars=""
+
+########
+# Clouds
+########
+
+#
+# AWS
+#
+
+#export TF_VAR_aws_access_key=""
+#export TF_VAR_aws_secret_key=""
+
+#
+# Azure
+#
+
+#export TF_VAR_subscription_id=""
+#export TF_VAR_tenant_id=""
+
+#########
+# Secrets
+#########
+
+#
+# Conjur
+#
+
+#export CONJUR_APPLIANCE_URL="https://conjur-server.example.com"
+#export CONJUR_ACCOUNT="example"
+## Initialize Conjur, saving the Certificate to the user's home in
+## ~/conjur-server.pem
+# conjur init --url "$CONJUR_APPLIANCE_URL" --account "$CONJUR_ACCOUNT" --force
+## Log in with a Host API Key.  The user's short hostname is used to identify
+## the host.  These would be set up ahead of time in Conjur.  This only needs
+## to be performed once.
+# conjur login --id "host/org/tenant/$(hostname -s)"
+# conjur whoami
+## Once you are logged in with the Conjur CLI, you can use the macOS Keychain
+## to access the required credentials to set up the environment variables.
+#export CONJUR_AUTHN_LOGIN="$(security find-generic-password -s ${CONJUR_APPLIANCE_URL}/authn -a login -w | cut -d ':' -f 2 | base64 -d -i -)"
+#export CONJUR_AUTHN_API_KEY="$(security find-generic-password -s ${CONJUR_APPLIANCE_URL}/authn -a password -w | cut -d ':' -f 2 | base64 -d -i -)"
+## Or, change for other OSes
+#export CONJUR_AUTHN_LOGIN=""
+#export CONJUR_AUTHN_API_KEY=""
+#export CONJUR_CERT_FILE="/etc/conjur.pem"
+# -or for Windows-
+#set CONJUR_APPLIANCE_URL=https://conjur-server.example.com
+#set CONJUR_ACCOUNT=example
+#set CONJUR_AUTHN_LOGIN=""
+#set CONJUR_AUTHN_API_KEY=""
+#set CONJUR_CERT_FILE=C:\conjur-server.pem
+
+#
+# Hashicorp Vault
+#
+
+#export VAULT_ADDR="https://vault-server.example.com:8200"
+## This logs into the Vault CLI and refreshes the users' token.
+# vault login #-method=ldap
+# -or for Windows-
+#set VAULT_ADDR=https://vault-server.example.com:8200

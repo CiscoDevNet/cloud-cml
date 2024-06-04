@@ -1,0 +1,21 @@
+admins:
+  controller:
+    password: ${cfg.secrets.app.secret}
+    username: ${cfg.secrets.app.username}
+  system:
+    password: ${cfg.secrets.sys.secret}
+    username: ${cfg.secrets.sys.username}
+cluster_interface: ""
+compute_secret: ${cfg.secrets.cluster.secret}
+controller_name: ${cfg.common.controller_hostname}
+copy_iso_to_disk: false
+hostname: ${hostname}
+interactive: false
+is_cluster: ${cfg.cluster.enable_cluster}
+is_compute: ${is_compute}
+is_configured: false
+is_controller: ${is_controller}
+primary_interface: ""
+ssh_server: true
+use_ipv4_dhcp: true
+skip_primary_bridge: true

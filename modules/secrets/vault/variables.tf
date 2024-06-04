@@ -4,10 +4,7 @@
 # All rights reserved.
 #
 
-output "public_ip" {
-  value = aws_instance.cml_controller.public_ip
-}
-
-output "sas_token" {
-  value = "undefined"
+variable "cfg" {
+  type        = any
+  description = "YAML configuration of the CML deployment"
 }

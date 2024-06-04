@@ -5,10 +5,23 @@
 #
 
 locals {
-  cfg    = yamldecode(file(var.cfg_file))
+  raw_cfg = yamldecode(file(var.cfg_file))
+  cfg = merge(
+    {
+      for k, v in local.raw_cfg : k => v if k != "secret"
+    },
+    {
+      secrets = module.secrets.secrets
+    }
+  )
   extras = var.cfg_extra_vars == null ? "" : (
     fileexists(var.cfg_extra_vars) ? file(var.cfg_extra_vars) : var.cfg_extra_vars
   )
+}
+
+module "secrets" {
+  source = "./modules/secrets"
+  cfg    = local.raw_cfg
 }
 
 module "deploy" {
@@ -19,8 +32,8 @@ module "deploy" {
 
 provider "cml2" {
   address        = "https://${module.deploy.public_ip}"
-  username       = local.cfg.app.user
-  password       = local.cfg.app.pass
+  username       = local.cfg.secrets.app.username
+  password       = local.cfg.secrets.app.secret
   use_cache      = false
   skip_verify    = true
   dynamic_config = true

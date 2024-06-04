@@ -1,6 +1,6 @@
 # AWS
 
-Version 0.2.1, December 18 2023
+Version 0.3.0, May 24 2023
 
 This document contains specific configuration steps to deploy a CML instance in AWS. Some sections from the top level document are repeated here with additional detail regarding AWS.
 
@@ -13,8 +13,6 @@ Furthermore, the user needs to have access to AWS console to create or modify an
 In addition, the `upload-images-to-aws.sh` script requires the AWS CLI and the `dialog`utility to upload images to S3. It is a Bash shell script that requires Linux to run.
 
 The AWS CLI and Terraform can be installed on the on-prem CML controller or, when this is undesirable due to support concerns, on a separate Linux instance.
-
-That said, it *should be possible* to run the tooling also on macOS with tools installed via [Homebrew](https://brew.sh/). Or on Windows with WSL. However, this hasn't been tested by us.
 
 ### Preparation
 
@@ -33,19 +31,20 @@ Some of the steps and procedures outlined below are preparation steps and only n
 
 Terraform can be downloaded for free from [here](https://developer.hashicorp.com/terraform/downloads). This site has also instructions how to install it on various supported platforms.
 
-Deployments of CML using Terraform were tested using version 1.4.6 on Ubuntu Linux.
+Deployments of CML using Terraform were tested using version 1.8.4 on macOS.
 
 ```plain
 $ terraform version
-Terraform v1.4.6
-on linux_amd64
-+ provider registry.terraform.io/ciscodevnet/cml2 v0.6.2
-+ provider registry.terraform.io/hashicorp/aws v4.67.0
-+ provider registry.terraform.io/hashicorp/random v3.5.1
+Terraform v1.8.4
+on darwin_arm64
++ provider registry.terraform.io/ciscodevnet/cml2 v0.7.0
++ provider registry.terraform.io/hashicorp/aws v5.51.0
++ provider registry.terraform.io/hashicorp/cloudinit v2.3.4
++ provider registry.terraform.io/hashicorp/random v3.6.1
 $
 ```
 
-It is assumed that the CML cloud repository was cloned to the computer where Terraform was installed. The following command are all executed within the directory that has the cloned repositories. In particular, this `README.md`, the `main.tf` and the `config.yml` files, amongst other files.
+It is assumed that the CML cloud repository was cloned to the computer where Terraform was installed. The following command are all executed within the directory that has the cloned repositories. In particular, the top level `README.md`, the `main.tf` and the `config.yml` files, amongst other files.
 
 When installed, run `terraform init` to initialize Terraform. This will download the required providers and create the state files.
 
@@ -55,7 +54,7 @@ The AWS CLI can be downloaded from [here](https://docs.aws.amazon.com/cli/latest
 
 ```plain
 $ aws --version
-aws-cli/2.10.4 Python/3.9.11 Linux/5.19.0-40-generic exe/x86_64.ubuntu.22 prompt/off
+aws-cli/2.15.56 Python/3.11.9 Darwin/23.5.0 source/arm64
 $
 ```
 
@@ -67,7 +66,8 @@ If you need to use a proxy to access AWS then define it using environment variab
 
 This section describes the resources required by the provisioning scripts to successfully deploy CML on AWS. These configurations and policies need to be created prior to using the tooling. This can be done on the AWS console or via the preferred deployment method (e.g. also via Terraform).
 
-> **Note:** There's also a [video on YouTube](https://youtu.be/vzgUyO-GQio) which shows all the steps outlined below.
+> [!NOTE]
+> There's also a [video on YouTube](https://youtu.be/vzgUyO-GQio) which shows all the steps outlined below.
 
 ### IAM user and group
 
@@ -107,9 +107,47 @@ To create the policy, go to "Policies", then click "Create policy". There select
 
 Replace "bucket-name" to the bucket name of your S3 bucket. This permits Read/Write and List access to the specified bucket and all objects within that bucket.
 
-> **Note:** This could be further tightened by removing the "PutObject" action from the policy as the EC2 instance / the CML controller only needs read access ("GetObject") and not write access access ("PutObject"). However, to upload images into the bucket, the write access is required at least initially.
+> [!NOTE]
+> This could be further tightened by removing the "PutObject" action from the policy as the EC2 instance / the CML controller only needs read access ("GetObject") and not write access access ("PutObject"). However, to upload images into the bucket, the write access is required at least initially.
 
 Click "Next" and provide a policy name, "cml-s3-access" for example. Finally, click "Create policy".
+
+### AWS KMS policy for EC2
+
+This is an optional policy that can be added to IAM.  This is not covered in the linked video as it was only added and documented with the 0.3.0 release of the tooling.  This works in combination with the `enable_ebs_encryption` attribute in the AWS section of the configuration file.
+
+```plain
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "VisualEditor0",
+            "Effect": "Allow",
+            "Action": [
+                "kms:Decrypt",
+                "kms:Encrypt",
+                "kms:ReEncrypt*",
+                "kms:GenerateDataKey*",
+                "kms:DescribeKey",
+                "kms:CreateGrant"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+For additional information, see this [documentation link](https://docs.aws.amazon.com/autoscaling/ec2/userguide/key-policy-requirements-EBS-encryption.html#policy-example-cmk-access).
+
+Create this policy in the same way as the S3 access policy, name it accordingly as 'cml-kms-access'.  It can be referenced by the cml_terraform user below.  It might be required to limit the resource where this policy should be applied to.  The above example uses a wild-card.
+
+With the default settings on AWS, setting the `enable_ebs_encryption` to true in the aws section of `config.yml`, default KMS keys will be used, so there is no need for an extra IAM policy.
+
+It is required, however, when custom KMS keys are used on AWS; in such a case, the TF user needs to have access to those via IAM policy.
+
+> [!NOTE]
+>
+> In some companies, EBS encryption might be enforced regardless of whether `enable_ebs_encryption` is set to true.
 
 ### Create Role
 
@@ -142,6 +180,7 @@ In the third step we attach permission policies to the group created in the step
 - AmazonEC2FullAccess, a pre-defined policy that allows to control EC2 instances
 - cml-s3-access, the S3 access policies allowing users in this group to read/write/list objects in the bucket specified by the policy
 - the "pass role" policy which passes the permission allowing access to the S3 bucket to EC2 instances the users in this group create
+- if the KMS access policy has been created and should be used, then attach it to the user as well (optional)
 
 To add these permission follow these steps:
 
@@ -162,6 +201,16 @@ To add these permission follow these steps:
 - select "Attach policies directly"
 - select "Customer managed" in the "Filter by type" drop down
 - select the "cml-s3-access" customer managed policy (the one we created above)
+- click "Next"
+- click "Add permissions"
+
+#### KMS policy (optional)
+
+- click on "Add permissions"
+- select "Add permissions" from the drop down
+- select "Attach policies directly"
+- select "Customer managed" in the "Filter by type" drop down
+- select the "cml-kms-access" customer managed policy (the one we created above)
 - click "Next"
 - click "Add permissions"
 
@@ -211,15 +260,15 @@ This access key and the associated secret key must be provided to the AWS Terraf
 
 The below screen shot shows an example of such a user with the required permission policies highlighted where the name of the user is "cml_terraform". Note that the required permission policies are listed. They are inherited from the "terraform" group. There's also an access key that has been created for this user.
 
-![image-20230810161432721](/images/permissions.png)
+![image-20230810161432721](../images/permissions.png)
 
-This role that is passed ("s3-access-for-ec2") is then configured in the `config.yml` attribute 'aws.profile'.
+This role that is passed ("s3-access-for-ec2") is then configured in the `config.yml` attribute 'aws.profile'.  The optional "cml-kms-access" policy would show as the fourth line above (not shown in the screen shot), if added.
 
-![image-20230810162352026](/images/perm-details.png)
+![image-20230810162352026](../images/perm-details.png)
 
 The following diagram outlines the relation between the various IAM elements:
 
-![image](/images/policies.png)
+![image](../images/policies.png)
 
 ### Other resources
 
@@ -248,6 +297,7 @@ Limited usability can be achieved by using compute optimized C5 instances (link 
 - External connector and unmanaged switch
 - All Linux node types
 - IOSv and IOSv-L2
+- IOL-XE and IOL-L2-XE
 
 To enable this experimental "feature", the `00-patch_vmx.sh` script must be uncommented in the `app.customize` list of the configuration file. See below.
 
@@ -280,7 +330,7 @@ As there are no instances running in this case, the output is empty. The importa
 
 ### Configuration file
 
-CML specific settings are specified in the configuration file `config.yml`.
+CML specific settings are specified in the configuration file `config.yml`.  See also [VPC support](#vpc-support) and [Cluster support](#cluster-suport) sections further down in the document.
 
 #### AWS section
 
@@ -290,22 +340,57 @@ This holds the various configurations for the EC2 instance and S3 bucket to be u
 - `aws.region`. This defines the region of the bucket and typically matches the region of the AWS CLI as configured above. It also defines the region where the EC2 instances are created
 - `aws.flavor`. The flavor / instance type to be used for the AWS CML instance. Typically a metal instance
 - `aws.profile`. The name of the permission profile to be used for the instance. This needs to permit access to the S3 bucket with the software and reference platforms. In the example given above, this was named "s3-access-for-ec2"
-- `aws.keyname`. SSH key name which needs to be installed on AWS EC2. This key will be injected into the instance using cloud-init.
-- `aws.disk_size`. The size of the disk in gigabytes. 64 is a good starting value but this truly depends on the kind of nodes and the planned instance lifetime.
+- `aws.vpc_id`. If this is the empty string, a custom VPC will be created and used.  If a VPC ID is specified, then instead of creating a new VPC, the specified VPC will be used instead
+- `aws.gw_id`. If this is the empty string, a new Internet gateway will be created and used.  If an ID is specified, then this gateway will be used for the public subnet, where the external interfaces for controller (and computes) are attached to
+
+#### VPC usage
+
+The CML AWS tool chain creates all required network infrastructure including a custom VPC.  This includes
+
+- VPC
+- Internet gateway
+- Security groups
+- Subnets
+- Route tables
+- NAT gateway
+- Transit gateway
+- Multicast domains
+- Addresses and network interfaces
+
+Some of these resources are only created when clustering is enabled.
+
+If a VPC ID is provided in the configuration, then that VPC is used and the required additional resources are attached to it.  However, certain assumptions are made about the existing VPC:
+
+- a gateway exists and is attached to this VPC
+- the IPv4 CIDR prefix associated with this VPC matches the configured CIDR block in the `config.yml`
+- an IPv6 CIDR prefix is associated to this VPC
+
+The CML controller (and computes, if clustering is enabled) will be attached to a new subnet which is attached to the existing VPC, a default route is used to route all traffic from the public subnet.
+
+#### Common section
+
+- `common.keyname`. SSH key name which needs to be installed on AWS EC2. This key will be injected into the instance using cloud-init.
+- `common.disk_size`. The size of the disk in gigabytes. 64 is a good starting value but this truly depends on the kind of nodes and the planned instance lifetime.
 
 In theory, the EC2 instance can be run in a different region than the region of the bucket where the software is stored. The tooling, however, assumes that both are in the same region.
 
+> [!WARNING]
+>
+> Please verify the correct configuration attributes within the `config.yml` which is the reference.  There's also additional information in the VPC and cluster sections below (new with 0.3.0).
+
 #### Host name
 
-Key name `hostname`. Name of the instance, standard hostname rules apply.
+Key name `controller_hostname`. Name of the instance, standard hostname rules apply.
+
+#### Secret section
+
+See the top level [README](/README.md) for information about secrets used throughout the CML cloud tooling.
 
 #### App section
 
 Within the app section, the following keys must be set with the correct values:
 
-- `app.user` username of the admin user (typically "admin") for UI access
-- `app.pass` password of the admin user
-- `app.deb` the filename of the Debian .deb package with the software, stored in the specified S3 bucket at the top level
+- `app.software` the filename of the CML .pkg package with the software, stored in the specified S3 bucket at the top level
 - `app.customize` a list of scripts, located in the `scripts` folder which will be run as part of the instance creation to customize the install
 
 ##### Customization
@@ -313,27 +398,18 @@ Within the app section, the following keys must be set with the correct values:
 There are currently two scripts provided for CML instance customization.
 
 1. Patch VMX. The `00-patch_vmx.sh` script disables/bypasses the VMX CPU flag check. This allows to run some reference platforms on non-metal AWS instance flavors. This limits the list of nodes that actually work quite significantly and is not supported. Use at your own risk.
-2. PATty. The `01-patty.sh` script installs the PATty package. The package must be present in the bucket at the top level. It is experimental at this point in time. The name of the Debian package is hard-coded into the script (this package is currently not available publicly).
+2. Let's Encrypt.  The `03-letsencrypt.sh` script copies a cert from storage if it exists and matches the configured hostname.  If not, it requests one via the Let's Encrypt service.  For this to work, it needs to have a valid hostname in DNS.  The script uses DynDNS which likely has to be replaced with something else to make this work.  Also note, that this script uses 'extra' variables to e.g. store the username and password for the DynDNS service.
 
 There's also a dummy entry in that list as the list must have at least one element. So, when not doing any of the predefined entries, at least the dummy must be present.
 
-> **Note:** PATty is currently not available as a standalone .deb file. We will include it with 2.6.1 as part of the controller distribution (in addition to installing it).
-
-> **Note:** AWS userdata is limited to 16KB of data (Base64 encoded).  That limit is easily reached.  If more customization is done with additional scripts (like certificate installation or system customization), then it's likely to run into this limit.  The tooling will eventually need to copy the script bundle to storage (S3) and download it from there during server bring-up (this is not done today!).  See [this SO post](https://stackoverflow.com/questions/72099325/bypassing-16kb-ec2-user-data-limitation).
-
-#### Sys section
-
-In this section, the OS user and password are defined.
-
-- `sys.user` username of the OS user (typically "sysadmin") for Cockpit and OS level maintenance access
-- `sys.pass` the associated password
+> [!NOTE]
+> AWS userdata is limited to 16KB of data (Base64 encoded).  That limit is easily reached.  If more customization is done with additional scripts (like certificate installation or system customization), then it's likely to run into this limit.  The tooling will eventually need to copy the script bundle to storage (S3) and download it from there during server bring-up (this is not done today!).  See [this SO post](https://stackoverflow.com/questions/72099325/bypassing-16kb-ec2-user-data-limitation).
 
 #### License section
 
 This holds the license that should be applied to the instance. It consists of three keys:
 
 - `license.flavor`: either `CML_Enterprise`, `CML_Education`, `CML_Personal` or `CML_Personal40` are acceptable
-- `license.token`: the Smart Licensing token
 - `license.nodes`: the number of *additional* nodes, not applicable for the personal flavors.
 
 #### Refplat section
@@ -345,20 +421,21 @@ Here, the reference platforms are listed which should be copied from the S3 buck
 
 It's mandatory that for each definition at least **one** matching image definition must be listed and that the name of these node and image definitions match with the names in the specified S3 bucket.
 
-> **Note:** The external connector and unmanaged switch are baked into the software, there's no need to have them listed here again.
+> [!NOTE]
+> The external connector and unmanaged switch are baked into the software, there's no need to have them listed here again.
 
 ### Required "layout" of the software bucket
 
 The software and reference platform definition and images must be uploaded to the S3 bucket to be used by the provisioning script. This includes:
 
-- the Debian package with the CML2 software
+- the CML software package as downloaded from CCO (the "update package", not the OVA)
 - the reference platform node definitions, image definitions and disk images of the reference platforms which should be available on the CML cloud instance
 
 The reference platform files are taken from the reference platform ISO and can be copied using the provided `upload-images-to-aws.sh` script or using the AWS CLI script or the Web UI directly into the bucket resulting in a folder hierarchy that looks similar to this:
 
 ```plain
 $ aws s3 ls --recursive s3://aws-bucket-name/
-2023-03-02 07:43:56   82189664 cml2_2.5.0-5_amd64.deb
+2024-04-16 07:43:56  175189664 cml2_2.7.0-4_amd64-20.pkg
 2023-03-02 14:38:10       2136 refplat/node-definitions/alpine.yaml
 2023-03-03 11:29:24       1652 refplat/node-definitions/iosv.yaml
 2023-03-03 11:29:23       1690 refplat/node-definitions/iosvl2.yaml
@@ -373,7 +450,8 @@ $ aws s3 ls --recursive s3://aws-bucket-name/
 2023-03-02 14:38:09   23134208 refplat/virl-base-images/server-tcl-11-1/tcl-11-1.qcow2
 ```
 
-> **Note:** The Debian package is in the top folder of the bucket and the platform files are in the refplat folder. Within that folder, the structure is identical to the structure of the reference platform ISO image.
+> [!NOTE]
+> The software package is in the top folder of the bucket and the platform files are in the refplat folder. Within that folder, the structure is identical to the structure of the reference platform ISO image.
 
 Uploading the files into the S3 bucket is only required for the first time or when updating software. Even when CML instances are stopped / destroyed, the software in the S3 bucket is typically not removed.
 
@@ -381,19 +459,19 @@ Uploading the files into the S3 bucket is only required for the first time or wh
 
 The upload tool makes it easy to quickly select and upload the software package and images to a defined S3 bucket (the bucket must exist already).
 
-> **Note:** The required CML software is the "pkg" file that is available for download from the Cisco software download page.  Example: `cml2_2.6.0-5_amd64-5.pkg`. Also note the .pkg suffix.
->
-> Placing the .pkg file into the directory with the upload tool will automatically extract the needed Debian package and offer the user to upload that package to the S3 bucket.
+> [!NOTE]
+> The required CML software is the "pkg" file that is available for download from the Cisco software download page.  Example: `cml2_2.7.0-4_amd64-20.pkg`. Also note the .pkg suffix.
 
 Start the tool by providing the bucket name as an argument and the location of the reference platform images. The defaults for both are `aws-cml-images` for the bucket name and `/var/lib/libvirt/images` for the reference platform image location.
 
 The tool will then display a simple dialog where the images which should be copied to the bucket can be selected:
 
-![](images/upload-refplat.png)
+![](../images/upload-refplat.png)
 
 After selecting OK the upload process will be started immediately. To abort the process, Ctrl-C can be used.
 
-> **Note:** If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
+> [!NOTE]
+> If a CML2 .pkg file is present in the directory where the tool is started, then the tool will offer to upload the software to the bucket.
 
 Help can be obtained via `./upload-images-to-aws.sh --help`.
 
@@ -448,6 +526,44 @@ ssh -p1122 sysadmin@IP_ADDRESS_OF_CONTROLLER /provision/del.sh
 ```
 
 This requires all labs to be stopped (no running VMs allowed) prior to removing the license. It will only work as long as the provisioned usernames and passwords have not changed between deployment and destruction of the instance.
+## VPC support
+
+With 0.3.0, the tooling always adds a custom VPC and doesn't use the default VPC anymore.  Additional variables have been added to the configuration file `config.yml` to support this.
+
+| Attribute                | Type                | Comment                                          |
+| ------------------------ | ------------------- | ------------------------------------------------ |
+| aws.public_vpc_ipv4_cidr | string, IPv4 prefix | defines the prefix to use on the VPC             |
+| aws.availability.zone    | string              | needed for VPC creation, should match the region |
+
+There's also a new variable, `allowed_ipv4_subnets` which defines a list of prefixes which are allowed to access the CML instance.  This defaults to "everywhere".
+
+## Cluster support
+
+Cluster support has been added to AWS with version 0.3.0.   This should be considered even more experimental than the rest of the tool chain.  A 'cluster' configuration section has been added to the configuration file.  The following tables describe the available attributes / settings:
+
+| Attribute                       | Type    | Description / notes                                          |
+| ------------------------------- | ------- | ------------------------------------------------------------ |
+| cluster.enable_cluster          | boolean | If set to true, then a cluster will be created               |
+| cluster.allow_vms_on_controller | boolean | If set to false, then controllers will not run any node VMs, only computes will |
+| cluster.number_of_compute_nodes | int     | Amount of compute nodes to be created                        |
+| secrets.app.cluster             | string  | the common secret for computes to register with the controller |
+
+And here's the attributes of the 'aws' configuration dictionary:
+
+| Attribute                                  | Type    | Description / notes                                          |
+| ------------------------------------------ | ------- | ------------------------------------------------------------ |
+| aws.region                                 | string  | as before                                                    |
+| aws.availability_zone                      | string  | **new:** required for VPC creation                           |
+| aws.bucket                                 | string  | as before                                                    |
+| aws.flavor                                 | string  | as before, used for the controller                           |
+| aws.flavor_compute                         | string  | **new:** flavor to use for the computes                      |
+| aws.profile                                | string  | as before                                                    |
+| aws.public_vpc_ipv4_cidr                   | string  | **new:** IPv4 prefix to use with the VPC (new, not using the default VPC anymore) |
+| aws.enable_ebs_encryption                  | boolean | **new:** sets the encryption flag for block storage          |
+| aws.spot_instances.use_spot_for_controller | boolean | **new:** whether the controller should use a spot instance   |
+| aws.spot_instances.use_spot_for_computes   | boolean | **new:** whether all the computes should use a spot instances |
+
+Before deploying a cluster, it is strongly recommended to go with an all-in-one first to verify that all the required pieces (software, images, configuration, ...) are in place and work properly.
 
 ## Example run
 
@@ -547,7 +663,8 @@ The system is running and the VIRL2 target (CML) is active!
 
 Prior to stopping the instance, the licensing token must be removed via the UI. Otherwise it's still considered "in use" in Smart Licensing. This is done via the UI or using the `del.sh` script / SSH command which is provided as part of the deploy output (see above). Then run the destroy command.
 
-> **Note:** The `del.sh` has no output if the command is successful.
+> [!NOTE]
+> The `del.sh` has no output if the command is successful.
 
 ```plain
 $ ssh -p1122 sysadmin@18.194.38.215 /provision/del.sh
@@ -602,7 +719,8 @@ $
 
 At this point, the compute resources have been released / destroyed. Images in the S3 bucket are still available for bringing up new instances.
 
-> **Note:** Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
+> [!NOTE]
+> Metal instances take significantly longer to bring up and to destroy. The `m5zn.metal` instance type takes about 5-10 minutes for both. Deployment times also depend on the number and size of reference platform images that should be copied to the instance.
 
 ## Troubleshooting
 
@@ -614,33 +732,26 @@ In case of errors during deployment or when the CML instance won't become ready,
 - check for errors in the log files in the `/var/log/cloud/` directory
 - check output of `cloud-init status`
 
-> **Note:** Not all instance flavors have a serial console but metal flavors do!
+> [!NOTE]
+> Not all instance flavors have a serial console but metal flavors do!
 
 ## Caveats and limitations
 
 This section lists a couple of caveats and limitations when running CML in AWS.
 
-### AWS only
-
-At this point in time, the tooling **only supports AWS**. Support for other platforms like Azure and Google Cloud Platform is planned for future releases.
-
 ### Metal flavor needed
 
-As pointed out above, full functionality **requires a metal instance flavor** because only the AWS metal flavors provide support for the VMX CPU flag to run accelerated nested VMs.
+As pointed out above, full functionality **requires a metal instance flavor** because only the AWS metal flavors provide support for the VMX CPU flag to run accelerated nested VMs.  A limited set of platforms works on non-metal flavors and when using the `00-patch_vmx.sh` customization script.
 
 ### No software upgrade
 
 Software upgrade or migration is **not supported** for cloud instances. We advise to download topologies or configurations prior to destroying the instance.
 
-### No cluster support
-
-At this point in time, CML AWS **instances are "all-in-one" instances**. No problems are expected running a cluster in AWS but this will require additional network plumbing and orchestration / configuration which hasn't been implemented and tested, yet.
-
 ### No bridge support
 
 CML cloud instances with the default networking have only one external IP address allocated. In addition, it's mandatory that no L2 frames leak into the outside network as this could disable access to the management IP address.
 
-For this reason, CML cloud instances by default only have the NAT network available. Ensure that all external connectors use the NAT (`virbr0`) network and not the bridge network (`bridge0`).
+For this reason, CML cloud instances only have the NAT network available by default. Ensure that all external connectors use the NAT (`virbr0`) network and not the bridge network (`bridge0`).
 
 In case of advanced VPC configuration with additional networks and NICs inside of the CML controller, bridging could be set up manually. This is out of scope for this documentation / tooling.
 

@@ -1,12 +1,24 @@
 # README
 
-Version 0.2.1, March 04 2024
+Version 0.3.0, June 4 2024
 
-This repository includes scripts, tooling and documentation to provision an instance of Cisco Modeling Labs (CML) in various cloud services. Currently supported are Amazon Web Services (AWS) and Microsoft Azure.
+With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML deployments using this tool chain in both clouds.  **The use of this tool is considered BETA**.  The tool has certain requirements and prerequisites which are described in this README and in the [documentation](documentation) directory.
 
-> **IMPORTANT** The CML deployment procedure and the tool chain / code provided in this repository are **considered "experimental"**. If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
+*It is very likely that this tool chain can not be used "as-is"*.  It should be forked and adapted to specific customer requirements and environments.
 
-> **IMPORTANT** Read the section below about cloud provider selection (prepare script).
+> [!IMPORTANT]
+>
+> **Support:**
+>
+> - For customers with a valid service contract, CML cloud deployments are supported by TAC within the outlined constraints.  Beyond this, support is done with best effort as cloud environments, requirements and policy can differ to a great extent.
+> - With no service contract, support is done on a best effort basis via the issue tracker.
+>
+> **Features and capabilities:** Changes to the deployment tooling will be considered like any other feature by adding them to the product roadmap.  This is done at the discretion of the CML team.
+>
+> **Error reporting:** If you encounter any errors or problems that might be related to the code in this repository then please open an issue on the [Github issue tracker for this repository](https://github.com/CiscoDevNet/cloud-cml/issues).
+
+> [!IMPORTANT]
+> Read the section below about [cloud provider selection](#important-cloud-provider-selection) (prepare script).
 
 ## General requirements
 
@@ -20,7 +32,7 @@ Furthermore, the user needs to have access to the cloud service. E.g. credential
 
 The tool chain / build scripts and Terraform can be installed on the on-prem CML controller or, when this is undesirable due to support concerns, on a separate Linux instance.
 
-That said, it *should be possible* to run the tooling also on macOS with tools installed via [Homebrew](https://brew.sh/). Or on Windows with WSL. However, this hasn't been tested by us.
+That said, the tooling also runs on macOS with tools installed via [Homebrew](https://brew.sh/). Or on Windows with WSL. However, Windows hasn't been tested by us.
 
 ### Preparation
 
@@ -35,29 +47,113 @@ Some of the steps and procedures outlined below are preparation steps and only n
 
 #### Important: Cloud provider selection
 
-The tooling supports multiple cloud providers (currently AWS and Azure).  Not everyone wants both providers.  It is mandatory to select and configure which provider to use.  This is a two step process:
+The tooling supports multiple cloud providers (currently AWS and Azure).  Not everyone wants both providers.  The **default configuration is set to use AWS only**.  If Azure should be used either instead or in addition then the following steps are mandatory:
 
 1. Run the `prepare.sh` script to modify and prepare the tool chain.  If on Windows, use `prepare.bat`.  You can actually choose to use both, if that's what you want.
 2. Configure the proper target ("aws" or "azure") in the configuration file
 
 The first step is unfortunately required, since it is impossible to dynamically select different cloud configurations within the same Terraform HCL configuration.  See [this SO link](https://stackoverflow.com/questions/70428374/how-to-make-the-provider-configuration-optional-and-based-on-the-condition-in-te) for more some context and details.
 
-The default "out-of-the-box" is AWS, so if you want to run on Azure, don't forget to run the prepare script.
+The default "out-of-the-box" configuration is AWS, so if you want to run on Azure, don't forget to run the prepare script.
+
+#### Managing secrets
+
+> [!WARNING]
+> It is a best practice to **not** keep your CML secrets and passwords in Git!
+
+CML cloud supports these storage methods for the required platform and application secrets:
+
+- Raw secrets in the configuration file (as supported with previous versions)
+- Random secrets by not specifiying any secrets
+- [Hashicorp Vault](https://www.vaultproject.io/)
+- [CyberArk Conjur](https://www.conjur.org/)
+
+See the sections below for additional details how to use and manage secrets.
+
+##### Referencing secrets
+
+You can refer to the secret maintained in the secrets manager by updating `config.yml` appropriately.  If you use the `dummy` secrets manager, it will use the `raw_secret` as specified in the `config.yml` file, and the secrets will **not** be protected.
+
+```yaml
+secret:
+  manager: conjur
+  secrets:
+    app:
+      username: admin
+      # Example using Conjur
+      path: example-org/example-project/secret/admin_password
+```
+
+Refer to the `.envrc.example` file for examples to set up environment variables to use an external secrets manager.
+
+##### Random secrets
+
+If you want random passwords to be generated when applying, based on [random_password](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password), leave the `raw_secret` undefined:
+
+```yaml
+secret:
+  manager: dummy
+  secrets:
+    app:
+      username: admin
+      # raw_secret: # Undefined
+```
+
+> [!NOTE]
+>
+> You can retrieve the generated passwords after applying with `terraform output cml2secrets`.
+
+The included default `config.yml` configures generated passwords for the following secrets:
+
+- App password (for the UI)
+- System password for the OS system administration user
+- Cluster secret when clustering is enabled
+
+Regardless of the secret manager in use or whether you use random passwords or not:  You **must** provide a valid Smart Licensing token for the sytem to work, though.
+
+##### CyberArk Conjur installation
+
+> [!IMPORTANT]
+> CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`. 
+
+These steps are only required if using CyberArk Conjur as an external secrets manager.
+1. Download the [CyberArk Conjur provider](https://github.com/cyberark/terraform-provider-conjur/releases).
+2. Copy the custom provider to `~/.terraform.d/plugins/localhost/cyberark/conjur/<version>/<architecture>/terraform-provider-conjur_v<version>`
+   ```bash
+   $ mkdir -vp ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
+   $ unzip ~/terraform-provider-conjur_0.6.7-4_darwin_arm64.zip -d ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
+   $
+   ```
+3. Create a `.terraformrc` file in the user's home:
+   ```hcl
+   provider_installation {
+     filesystem_mirror {
+       path    = "/Users/example/.terraform.d/plugins"
+       include = ["localhost/cyberark/conjur"]
+     }
+     direct {
+       exclude = ["localhost/cyberark/conjur"]
+     }
+   }
+   ```
 
 ### Terraform installation
 
 Terraform can be downloaded for free from [here](https://developer.hashicorp.com/terraform/downloads). This site has also instructions how to install it on various supported platforms.
 
-Deployments of CML using Terraform were tested using the versions mentioned below on Ubuntu Linux.
+Deployments of CML using Terraform were tested using the versions mentioned below on Ubuntu Linux and macOS.
 
-```plain
+```bash
 $ terraform version
-Terraform v1.7.3
-on linux_amd64
+Terraform v1.8.0
+on darwin_arm64
 + provider registry.terraform.io/ciscodevnet/cml2 v0.7.0
-+ provider registry.terraform.io/hashicorp/aws v5.37.0
-+ provider registry.terraform.io/hashicorp/azurerm v3.92.0
-+ provider registry.terraform.io/hashicorp/random v3.6.0
++ provider registry.terraform.io/hashicorp/aws v5.45.0
++ provider registry.terraform.io/hashicorp/azurerm v3.99.0
++ provider registry.terraform.io/hashicorp/cloudinit v2.3.3
++ provider registry.terraform.io/hashicorp/random v3.6.1
++ provider registry.terraform.io/hashicorp/vault v4.2.0
++ provider localhost/cyberark/conjur v0.6.7
 $
 ```
 
@@ -74,12 +170,23 @@ See the documentation directory for cloud specific instructions:
 
 ## Customization
 
-There's two variables which can be defined / set to further customize the behavior of the tool chain:
+There's two Terraform variables which can be defined / set to further customize the behavior of the tool chain:
 
 - `cfg_file`: This variable defines the configuration file.  It defaults to `config.yml`.
 - `cfg_extra_vars`: This variable defines the name of a file with additional variable definitions.  The default is "none".
 
-A typical extra vars file would look like this:
+```bash
+export TF_VAR_access_key="aws-something"
+export TF_VAR_secret_key="aws-somethingelse"
+
+# export TF_VAR_subscription_id="azure-something"
+# export TF_VAR_tenant_id="azure-something-else"
+
+export TF_VAR_cfg_file="config-custom.yml"
+export TF_VAR_cfg_extra_vars="extras.sh"
+```
+
+A typical extra vars file would look like this (as referenced by `extras.sh` in the code above):
 
 ```plain
 CFG_UN="username"
@@ -92,19 +199,18 @@ In this example, four additional variables are defined which can be used in cust
 
 See the AWS specific document for additional information how to define variables in the environment using tools like `direnv` ("Terraform variable definition").
 
-## Extra scripts
+## Additional customization scripts
 
 The deploy module has a couple of extra scripts which are not enabled / used by default.  They are:
 
-- install IOL related files, likely obsolete with the release of 2.7 (`02-iol.sh`)
-- request/install certificates from Letsencrypt (`03-letsencrypt.sh`)
+- request/install certificates from LetsEncrypt (`03-letsencrypt.sh`)
 - customize additional settings, here: add users and resource pools (`04-customize.sh`).
 
 These additional scripts serve mostly as an inspiration for customization of the system to adapt to local requirements.
 
 ### Requesting a cert
 
-The letencrypt script requests a cert if there's none already present.  The cert can then be manually copied from the host to the cloud storage with the hostname as a prefix.  If the host with the same hostname is started again at a later point in time and the cert files exist in cloud storage, then those files are simply copied back to the host without requesting a new certificate.  This avoids running into any certificate request limits.
+The letsencrypt script requests a cert if there's none already present.  The cert can then be manually copied from the host to the cloud storage with the hostname as a prefix.  If the host with the same hostname is started again at a later point in time and the cert files exist in cloud storage, then those files are simply copied back to the host without requesting a new certificate.  This avoids running into any certificate request limits.
 
 Certificates are stored in `/etc/letsencrypt/live` in a directory with the configured hostname.
 

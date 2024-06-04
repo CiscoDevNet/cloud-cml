@@ -14,16 +14,32 @@ locals {
     }
   )
 
+  cml_config_controller = templatefile("${path.module}/../data/virl2-base-config.yml", {
+    hostname      = var.options.cfg.common.controller_hostname,
+    is_controller = true
+    is_compute    = !var.options.cfg.cluster.enable_cluster || var.options.cfg.cluster.allow_vms_on_controller
+    cfg = merge(
+      var.options.cfg,
+      { sas_token = data.azurerm_storage_account_sas.cml.sas }
+    )
+    }
+  )
+
   # Ensure there's no tabs in the template file! Also ensure that the list of
   # reference platforms has no single quotes in the file names or keys (should
   # be reasonable, but you never know...)
   cloud_config = templatefile("${path.module}/../data/cloud-config.txt", {
-    vars     = local.vars
-    cfg      = var.options.cfg
-    copyfile = var.options.copyfile
-    del      = var.options.del
-    extras   = var.options.extras
-    path     = path.module
+    vars          = local.vars
+    cml_config    = local.cml_config_controller
+    cfg           = var.options.cfg
+    cml           = var.options.cml
+    common        = var.options.common
+    copyfile      = var.options.copyfile
+    del           = var.options.del
+    interface_fix = var.options.interface_fix
+    extras        = var.options.extras
+    hostname      = var.options.cfg.common.controller_hostname
+    path          = path.module
   })
 
   # vmname     = "cml-${var.options.rand_id}"
@@ -81,7 +97,7 @@ resource "azurerm_network_security_group" "cml" {
   resource_group_name = data.azurerm_resource_group.cml.name
 }
 
-resource "azurerm_network_security_rule" "cml-std" {
+resource "azurerm_network_security_rule" "cml_std" {
   name                        = "cml-std-in"
   priority                    = 100
   direction                   = "Inbound"
@@ -95,8 +111,8 @@ resource "azurerm_network_security_rule" "cml-std" {
   network_security_group_name = azurerm_network_security_group.cml.name
 }
 
-resource "azurerm_network_security_rule" "cml-patty-tcp" {
-  count                       = var.options.use_patty ? 1 : 0
+resource "azurerm_network_security_rule" "cml_patty_tcp" {
+  count                       = var.options.cfg.common.enable_patty ? 1 : 0
   name                        = "patty-tcp-in"
   priority                    = 200
   direction                   = "Inbound"
@@ -110,8 +126,8 @@ resource "azurerm_network_security_rule" "cml-patty-tcp" {
   network_security_group_name = azurerm_network_security_group.cml.name
 }
 
-resource "azurerm_network_security_rule" "cml-patty-udp" {
-  count                       = var.options.use_patty ? 1 : 0
+resource "azurerm_network_security_rule" "cml_patty_udp" {
+  count                       = var.options.cfg.common.enable_patty ? 1 : 0
   name                        = "patty-udp-in"
   priority                    = 300
   direction                   = "Inbound"
@@ -166,7 +182,7 @@ resource "azurerm_network_interface_security_group_association" "cml" {
 }
 
 resource "azurerm_linux_virtual_machine" "cml" {
-  name                = var.options.cfg.common.hostname
+  name                = var.options.cfg.common.controller_hostname
   resource_group_name = data.azurerm_resource_group.cml.name
   location            = data.azurerm_resource_group.cml.location
 
@@ -194,6 +210,10 @@ resource "azurerm_linux_virtual_machine" "cml" {
   # Standard_D64d_v4	64	256	2400	32	300000/4000	8	30000
 
   size = var.options.cfg.azure.size
+
+  # uncomment this block for diagnostics and serial console access to the VM
+  # boot_diagnostics {
+  # }
 
   admin_username = "ubuntu"
   network_interface_ids = [
@@ -230,14 +250,7 @@ data "azurerm_ssh_public_key" "cml" {
 
 data "cloudinit_config" "azure_ud" {
   gzip          = true
-  base64_encode = true  # always true if gzip is true
-
-  part {
-    filename     = "userdata.txt"
-    content_type = "text/x-shellscript"
-
-    content = var.options.cml
-  }
+  base64_encode = true # always true if gzip is true
 
   part {
     filename     = "cloud-config.yaml"

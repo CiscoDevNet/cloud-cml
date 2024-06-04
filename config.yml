@@ -10,42 +10,125 @@ target: aws
 
 aws:
   region: us-east-1
+  availability_zone: us-east-1a
   bucket: bucket-name-goes-here
   # flavor: c5.2xlarge
   flavor: m5zn.metal
+  flavor_compute: m5zn.metal
   profile: permission-profile-goes-here
+  # when specifying a VPC ID below then this prefix must exist on that VPC!
+  public_vpc_ipv4_cidr: 10.0.0.0/16
+  enable_ebs_encryption: false
+  # leave empty to create a custom VPC / Internet gateway, or provide the IDs
+  # of the VPC / gateway to use, they must exist and properly associated.
+  # also: an IPv6 CIDR prefix must be associated with the specified VPC
+  vpc_id: ""
+  gw_id: ""
+  spot_instances:
+    use_spot_for_controller: false
+    use_spot_for_computes: false
 
 azure:
   resource_group: resource-group-name
   size: Standard_D4d_v4
+  size_compute: unused_at_the_moment
   storage_account: storage-account-name
   container_name: container-name
 
 common:
   disk_size: 64
-  hostname: cml-controller
+  controller_hostname: cml-controller
   key_name: ssh-key-name
+  allowed_ipv4_subnets: ["0.0.0.0/0"]
+  enable_patty: true
+
+cluster:
+  enable_cluster: false
+  # No longer used, see the secret manager section below
+  #secret: your-secret-password
+  allow_vms_on_controller: true
+  number_of_compute_nodes: 0
+  compute_hostname_prefix: cml-compute
+  compute_disk_size: 32
+
+secret:
+  # At this time, 'vault', 'conjur' and 'dummy' are supported secrets managers.
+  # Make sure that you also run the prepare.sh / prepare.bat script, otherwise
+  # a 'raw_secret' will be used.  If 'raw_secret' is not defined, a random
+  # password will be used.
+  # https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password
+  #manager: vault
+  #manager: conjur
+  manager: dummy
+
+  conjur:
+
+  vault:
+    # Only the v2 version of the key value secret engine is supported
+    # https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2
+    kv_secret_v2_mount: secret
+    # Set this to true to prevent the creation of ephemeral child token used by this provider.
+    skip_child_token: true
+
+  # These are the secrets that will be used by the CML instances.  This key
+  # gets mapped to the main configuration under 'secrets'.  The values are
+  # filled in by the secrets manager and are accessible using the 'secret'. For
+  # example, the 'app' password is accessed using 'secrets.app.secret'. The
+  # SmartLicense token is accessed using 'secrets.smartlicense_token.secret'.
+  secrets:
+    app:
+      username: admin
+      # Used with dummy secret manager.  If unspecified, a random password will
+      # be generated. You need to escape special chars:
+      #raw_secret: '\"!@$%'
+      #raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur:
+      #path: example-org/example-project/admin_password
+      # Used with Vault only:
+      #field: secret
+
+    sys:
+      username: sysadmin
+      # Used with dummy secret manager.  If unspecified, a random password will
+      # be generated.
+      #raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur:
+      #path: example-org/example-project/sysadmin_password
+      # Used with Vault only:
+      #field: secret
+
+    smartlicense_token:
+      # Only used with dummy secret manager
+      raw_secret: your-smart-licensing-token
+      # Path to secret, used with both Vault and Conjur:
+      #path: example-org/example-project/smartlicense_token
+      # Used with Vault only:
+      #field: token
+
+    cluster:
+      # Used with dummy secret manager.  If unspecified, a random password will
+      # be generated.
+      #raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur:
+      #path: example-org/example-project/cluster_secret
+      # Used with Vault only:
+      #field: secret
 
 app:
-  user: admin
-  pass: your-secret-password
-  # need to escape special chars:
-  # pass: '\"!@$%'
-  deb: cml2_2.6.1-11_amd64.deb
+  # **No longer used, see the secret manager section above**
+  #user: admin
+  #pass: your-secret-password
+  software: cml2_2.7.0-4_amd64-20.pkg
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
   customize:
     # - 00-patch_vmx.sh
-    # - 01-patty.sh
     - 99-dummy.sh
-
-sys:
-  user: sysadmin
-  pass: your-secret-password
 
 license:
   flavor: CML_Enterprise
-  token: your-smart-licensing-token
+  # **No longer used, see the secret manager section above**
+  #token: your-smart-licensing-token
   # Unless you have additional node licenses available, leave this at zero
   nodes: 0
 

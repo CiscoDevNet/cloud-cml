@@ -17,8 +17,8 @@
 
 echo -n "no-VMX patch..."
 (
-cd /var/local/virl2/.local/lib/python3.8/site-packages
-patch -p1 --forward <<EOF
+    cd /var/local/virl2/.local/lib/python3.8/site-packages
+    patch -p1 --forward <<EOF
 diff -ru a/simple_core/libvirt/templates/qemu_node.xml b/simple_core/libvirt/templates/qemu_node.xml
 --- a/simple_core/libvirt/templates/qemu_node.xml 2023-02-25 22:05:12.000000000 +0000
 +++ b/simple_core/libvirt/templates/qemu_node.xml 2023-03-07 08:26:44.695350828 +0000
@@ -50,5 +50,6 @@ diff -ru a/simple_drivers/low_level_driver/host_statistics.py b/simple_drivers/l
      def stats(self):
  
 EOF
+    systemctl restart virl2.target
 )
 echo "done"
