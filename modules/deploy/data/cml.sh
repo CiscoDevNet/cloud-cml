@@ -131,7 +131,6 @@ function base_setup() {
 }
 
 function cml_configure() {
-    target=$1
     API="http://ip6-localhost:8001/api/v0"
 
     clouduser="ubuntu"
@@ -223,7 +222,7 @@ function cml_configure() {
 }
 
 function postprocess() {
-    FILELIST=$(find /provision/ -type f | egrep '[0-9]{2}-[[:alnum:]_]+\.sh' | grep -v '99-dummy' | sort)
+    FILELIST=$(find /provision/ -type f | grep -E '[0-9]{2}-[[:alnum:]_]+\.sh' | grep -v '99-dummy' | sort)
     if [ -n "$FILELIST" ]; then
         (
             mkdir -p /var/log/provision
@@ -231,8 +230,8 @@ function postprocess() {
                 echo "processing $patch ..."
                 (
                     source "$patch" || true
-                ) 2>&1 | tee "/var/log/"$patch".log"
-                echo "done with $patch"
+                ) 2>&1 | tee "/var/log/${patch}.log"
+                echo "done with ${patch}"
             done
         )
     fi

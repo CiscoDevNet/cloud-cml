@@ -1,8 +1,8 @@
 # README
 
-Version 0.3.0, May 24 2024
+Version 0.3.0, June 4 2024
 
-With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML deployments using this tool chain in both clouds.  **The use of this tool is considered experimental**.  The tool has certain requirements and prerequisites which are described in this README and in the [documentation](documentation) directory.
+With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML deployments using this tool chain in both clouds.  **The use of this tool is considered BETA**.  The tool has certain requirements and prerequisites which are described in this README and in the [documentation](documentation) directory.
 
 *It is very likely that this tool chain can not be used "as-is"*.  It should be forked and adapted to specific customer requirements and environments.
 
