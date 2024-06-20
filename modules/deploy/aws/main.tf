@@ -82,28 +82,28 @@ locals {
   main_gw_id = length(var.options.cfg.aws.gw_id) > 0 ? var.options.cfg.aws.gw_id : aws_internet_gateway.public_igw[0].id
 
   cml_ingress = [
-    {
-      "description" : "allow SSH",
-      "from_port" : 1122,
-      "to_port" : 1122
-      "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
-      "ipv6_cidr_blocks" : [],
-      "prefix_list_ids" : [],
-      "security_groups" : [],
-      "self" : false,
-    },
-    {
-      "description" : "allow CML termserver",
-      "from_port" : 22,
-      "to_port" : 22
-      "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
-      "ipv6_cidr_blocks" : [],
-      "prefix_list_ids" : [],
-      "security_groups" : [],
-      "self" : false,
-    },
+    # {
+    #   "description" : "allow SSH",
+    #   "from_port" : 1122,
+    #   "to_port" : 1122
+    #   "protocol" : "tcp",
+    #   "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+    #   "ipv6_cidr_blocks" : [],
+    #   "prefix_list_ids" : [],
+    #   "security_groups" : [],
+    #   "self" : false,
+    # },
+    # {
+    #   "description" : "allow CML termserver",
+    #   "from_port" : 22,
+    #   "to_port" : 22
+    #   "protocol" : "tcp",
+    #   "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+    #   "ipv6_cidr_blocks" : [],
+    #   "prefix_list_ids" : [],
+    #   "security_groups" : [],
+    #   "self" : false,
+    # },
     {
       "description" : "allow Cockpit",
       "from_port" : 9090,
@@ -498,7 +498,8 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+    # values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
   }
 
   filter {

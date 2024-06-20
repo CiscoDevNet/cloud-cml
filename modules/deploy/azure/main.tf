@@ -98,14 +98,16 @@ resource "azurerm_network_security_group" "cml" {
 }
 
 resource "azurerm_network_security_rule" "cml_std" {
+  // remove 22 and 1122 for the time being
+  // destination_port_ranges     = [22, 80, 443, 1122, 9090]
   name                        = "cml-std-in"
   priority                    = 100
   direction                   = "Inbound"
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_ranges     = [22, 80, 443, 1122, 9090]
-  source_address_prefix       = "*"
+  destination_port_ranges     = [80, 443, 9090]
+  source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name
   network_security_group_name = azurerm_network_security_group.cml.name
@@ -233,10 +235,16 @@ resource "azurerm_linux_virtual_machine" "cml" {
   }
 
   # https://canonical-azure.readthedocs-hosted.com/en/latest/azure-explanation/daily-vs-release-images/
+  # source_image_reference {
+  #   publisher = "Canonical"
+  #   offer     = "0001-com-ubuntu-server-focal"
+  #   sku       = "20_04-lts"
+  #   version   = "latest"
+  # }
   source_image_reference {
     publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-focal"
-    sku       = "20_04-lts"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "minimal"
     version   = "latest"
   }
 

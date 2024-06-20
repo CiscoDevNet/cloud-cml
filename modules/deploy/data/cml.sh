@@ -16,7 +16,10 @@ source /provision/vars.sh
 
 function setup_pre_aws() {
     export AWS_DEFAULT_REGION=${CFG_AWS_REGION}
-    apt-get install -y awscli
+    # Jammy
+    # apt-get install -y awscli
+    # Noble
+    snap install aws-cli --classic
 }
 
 function setup_pre_azure() {
@@ -63,11 +66,20 @@ function base_setup() {
     copyfile ${CFG_APP_SOFTWARE} /provision/
     tar xvf /provision/${CFG_APP_SOFTWARE} --wildcards -C /tmp 'cml2*_amd64.deb' 'patty*_amd64.deb' 'iol-tools*_amd64.deb'
     systemctl stop ssh
-    apt-get install -y /tmp/*.deb
+
+    # install i386 architecture if the version requires it
+    # Package is not installed at this point in time
+    # version=$(dpkg-query --showformat='${Version}' --show cml2)
+    version=$(ls /tmp/cml2_*_amd64.deb | awk -F_ '{print $2}')
+    if dpkg --compare-versions "$version" ge 2.7.0; then
+        dpkg --add-architecture i386
+        apt-get update
+    fi
+    apt-get install -y network-manager /tmp/*.deb
     # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
-    /provision/interface_fix.py
-    systemctl restart network-manager
-    netplan apply
+    # /provision/interface_fix.py
+    # systemctl restart network-manager
+    # netplan apply
     # Fix for the headless setup (tty remove as the cloud VM has none)
     sed -i '/^Standard/ s/^/#/' /lib/systemd/system/virl2-initial-setup.service
     touch /etc/.virl2_unconfigured

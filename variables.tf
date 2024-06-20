@@ -34,13 +34,13 @@ variable "aws_secret_key" {
 
 # Azure related vars
 
-variable "subscription_id" {
+variable "azure_subscription_id" {
   type        = string
   description = "Azure subscription ID"
   default     = "notset"
 }
 
-variable "tenant_id" {
+variable "azure_tenant_id" {
   type        = string
   description = "Azure tenant ID"
   default     = "notset"
