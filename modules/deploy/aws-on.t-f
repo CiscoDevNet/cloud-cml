@@ -26,7 +26,8 @@ provider "aws" {
 }
 
 module "aws" {
-  source  = "./aws"
+  source  = "./aws-mini"
+  # source  = "./aws"
   count   = var.cfg.target == "aws" ? 1 : 0
   options = local.options
 }

@@ -1,0 +1,170 @@
+#
+# This file is part of Cisco Modeling Labs
+# Copyright (c) 2019-2024, Cisco Systems, Inc.
+# All rights reserved.
+#
+
+# at this time, "aws" and "azure" are defined targets
+# make sure that you ran the prepare.sh / prepare.bat script!
+target: aws
+
+aws:
+  region: us-east-1
+  bucket: your-bucket-name
+  flavor: c5.2xlarge
+  profile: your-policy-name
+  enable_ebs_encryption: false
+  subnet_id: "subnet-your-subnet-id"
+  sg_id: "sg-your-security-group-id"
+
+common:
+  disk_size: 64
+  controller_hostname: cml-controller
+  key_name: your-ssh-key-name
+  enable_patty: true
+
+secret:
+  # At this time, 'vault', 'conjur' and 'dummy' are supported secrets managers.
+  # Make sure that you also run the prepare.sh / prepare.bat script, otherwise
+  # a 'raw_secret' will be used.  If 'raw_secret' is not defined, a 
+  # random_password will be used.
+  # https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password
+  #manager:  vault
+  #manager:  conjur
+  manager:  dummy
+
+  conjur:
+
+  vault:
+    # Only the v2 version of the key value secret engine is supported
+    # https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2
+    kv_secret_v2_mount: secret
+    # Set this to true to prevent the creation of ephemeral child token used by this provider.
+    skip_child_token: true
+
+  # These are the secrets that will be used by the CML instances.  This key 
+  # gets mapped to the main configuration under 'secrets'.  The values are
+  # filled in by the secrets manager and are accessible using the 'secret'.
+  # For example, the 'app' password is accessed using 'secrets.app.secret'.
+  # The SmartLicense token is accessed using
+  # 'secrets.smartlicense_token.secret'.
+  secrets:
+    app:
+      username: admin
+      # Used with dummy secret manager.  If unspecified, a random 
+      # password will be generated. You need to escape special chars:
+      #raw_secret: '\"!@$%'
+      #raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur
+      #path: example-org/example-project/admin_password
+      # Used with Vault only
+      #field: secret
+
+    sys:
+      username: sysadmin
+      # Used with dummy secret manager.  If unspecified, a random 
+      # password will be generated.
+      # raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur
+      #path: example-org/example-project/sysadmin_password
+      # Used with Vault only
+      #field: secret
+
+    smartlicense_token:
+      # Only used with dummy secret manager
+      raw_secret: your-cml-license-token-here
+      # Path to secret, used with both Vault and Conjur
+      #path: example-org/example-project/smartlicense_token
+      # Used with Vault only
+      #field: token
+
+    cluster:
+      # Used with dummy secret manager.  If unspecified, a random 
+      # password will be generated.
+      # raw_secret: your-secret-password
+      # Path to secret, used with both Vault and Conjur
+      #path: example-org/example-project/cluster_secret
+      # Used with Vault only
+      #field: secret
+
+app:
+  # **No longer used, see the secret manager section above**
+  #user: admin
+  #pass: your-secret-password
+  software: cml2_2.7.0-4_amd64-20.pkg
+  # The list must have at least ONE element, this is what the dummy is for in
+  # case 00- and 01- are commented out!
+  customize:
+    # - 00-patch_vmx.sh
+    # - 03-letsencrypt.sh
+    # - 04-customize.sh
+    - 99-dummy.sh
+
+#sys:
+  # **No longer used, see the secret manager section above**
+  #user: sysadmin
+  #pass: your-secret-password
+
+license:
+  flavor: CML_Enterprise
+  # **No longer used, see the secret manager section above**
+  #token: your-smart-licensing-token
+  # Unless you have additional node licenses available, leave this at zero
+  nodes: 30
+
+# Select the reference platforms needed by un-/commenting them. The selected
+# reference platforms will be copied from the specified cloud storage and must
+# be available prior to starting an instance. Ensure that each definition has
+# also a corresponding image! A smaller selection: less copying, faster bring-up
+# time!
+refplat:
+  definitions:
+    - alpine
+    - alpine-trex
+    - alpine-wanem
+    - asav
+    - cat8000v
+    - cat9000v-q200
+    - cat9000v-uadp
+    - cat-sdwan-edge
+    - cat-sdwan-controller
+    - cat-sdwan-manager
+    - cat-sdwan-validator
+    - cat-sdwan-vedge
+    - csr1000v
+    - desktop
+    - iol-xe
+    - ioll2-xe
+    - iosv
+    - iosvl2
+    - iosxrv9000
+    - nxosv9000
+    - server
+    - ubuntu
+  images:
+    # - alpine-3-19-1-base
+    - alpine-3-16-2-base
+    # - alpine-3-19-1-trex
+    # - alpine-3-19-1-wanem
+    # - asav-9-20-2
+    # - cat8000v-17-13-01a
+    # - cat9000v-q200-17-12-01prd9
+    # - cat9000v-uadp-17-12-01prd9
+    # - cat-sdwan-edge-17-13-01a
+    # - cat-sdwan-controller-20-13-1
+    # - cat-sdwan-manager-20-13-1
+    # - cat-sdwan-validator-20-13-1
+    # - cat-sdwan-vedge-20-13-1
+    # - csr1000v-17-03-068a
+    # - desktop-3-19-1-xfce
+    - iol-xe-17-12-01
+    - ioll2-xe-17-12-01
+    # - iosv-159-3-m8
+    - iosv-159-3-m6
+    - iosvl2-2020
+    # - iosxrv9000-7-11-1
+    # - nxosv9300-10-4-2-f
+    # - server-tcl-14-1
+    - server-tcl-13-1
+    # - ubuntu-22-04-20240126
+    - ubuntu-22-04-20221028
