@@ -19,7 +19,7 @@ locals {
   cml_config_controller = templatefile("${path.module}/../data/virl2-base-config.yml", {
     hostname      = var.options.cfg.common.controller_hostname,
     is_controller = true
-    is_compute    = false
+    is_compute    = true
     cfg = merge(
       var.options.cfg,
       # Need to have this as it's referenced in the template (Azure specific)

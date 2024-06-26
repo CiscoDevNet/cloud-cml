@@ -34,7 +34,7 @@ provider "cml2" {
   address        = "https://${module.deploy.public_ip}"
   username       = local.cfg.secrets.app.username
   password       = local.cfg.secrets.app.secret
-  use_cache      = false
+  # use_cache      = false  # deprecated w/ 0.8.0
   skip_verify    = true
   dynamic_config = true
 }
