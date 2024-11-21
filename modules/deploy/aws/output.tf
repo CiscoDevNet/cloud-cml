@@ -5,7 +5,7 @@
 #
 
 output "public_ip" {
-  value = aws_instance.cml_controller.public_ip
+  value = aws_eip.server_eip.public_ip
 }
 
 output "sas_token" {
