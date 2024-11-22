@@ -145,7 +145,7 @@ resource "azurerm_public_ip" "cml" {
   name                = "cml-pub-ip-${var.options.rand_id}"
   resource_group_name = data.azurerm_resource_group.cml.name
   location            = data.azurerm_resource_group.cml.location
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"
 }
 
 resource "azurerm_virtual_network" "cml" {
