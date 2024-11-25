@@ -19,6 +19,7 @@ aws:
   # when specifying a VPC ID below then this prefix must exist on that VPC!
   public_vpc_ipv4_cidr: 10.0.0.0/16
   enable_ebs_encryption: false
+  allowed_ipv4_subnets: ["0.0.0.0/0"]
   # leave empty to create a custom VPC / Internet gateway, or provide the IDs
   # of the VPC / gateway to use, they must exist and properly associated.
   # also: an IPv6 CIDR prefix must be associated with the specified VPC
@@ -34,12 +35,12 @@ azure:
   size_compute: unused_at_the_moment
   storage_account: storage-account-name
   container_name: container-name
+  allowed_ipv4_subnets: ["*"]
 
 common:
   disk_size: 64
   controller_hostname: cml-controller
   key_name: ssh-key-name
-  allowed_ipv4_subnets: ["0.0.0.0/0"]
   enable_patty: true
 
 cluster:
@@ -118,7 +119,7 @@ app:
   # **No longer used, see the secret manager section above**
   #user: admin
   #pass: your-secret-password
-  software: cml2_2.7.0-4_amd64-20.pkg
+  software: cml2-software-package-name.pkg
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
   customize:

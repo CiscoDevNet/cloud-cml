@@ -28,6 +28,8 @@ module "deploy" {
   source = "./modules/deploy"
   cfg    = local.cfg
   extras = local.extras
+  azure_subscription_id = var.subscription_id
+  azure_tenant_id       = var.tenant_id
 }
 
 provider "cml2" {
