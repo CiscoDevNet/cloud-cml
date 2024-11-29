@@ -1,8 +1,11 @@
 # AWS
 
-Version 0.3.0, May 24 2023
+Version 0.3.1, November 2024
 
 This document contains specific configuration steps to deploy a CML instance in AWS. Some sections from the top level document are repeated here with additional detail regarding AWS.
+
+> [!IMPORTANT]
+> The repository includes an alternative deployment method for AWS (aws-mini) which does not create any network resources.  It therefore relies on these resources to be available at the time of deploying CML.  See the "Mini vs regular deployments" section below!
 
 ## General requirements
 
@@ -26,6 +29,52 @@ Some of the steps and procedures outlined below are preparation steps and only n
 - editing the `config.yml` configuration file including the selection of an instance flavor, region and other parameters
 
 ![flowchart](../images/flowchart.png)
+
+### Mini vs regular deployments
+
+As mentioned at the top, there's an `aws-mini` deployment option as an alternative to the "regular" deployment option.  The differences are:
+
+| What                                                    | regular flavor | mini flavor |
+| ------------------------------------------------------- | -------------- | ----------- |
+| Allow CML cluster                                       | yes            | no          |
+| Create VPC                                              | optional       | no          |
+| Create Subnet, IGW, NAT GW, Route table, security group | yes            | no          |
+| Create elastic IP                                       | yes            | optional*   |
+| Create VM network interface                             | yes            | yes         |
+
+The mini flavor is useful in case the AWS networking infrastructure is already in place and can not or should not be modified, cloud-cml should simply create a CML instance that uses the existing networking infrastructure by providing the subnet ID and the security group ID that should be used to attach the CML VM to.
+
+*If no Elastic IP should be used and the server should use a private IP from the configured subnet instead then this is configurable in the .tf file.  See the comment for the `resource "aws_eip" "server_eip"` inside of `main.tf` for the mini variant. 
+
+#### How to enable the mini variant
+
+Edit the `modules/deploy/aws-on.t-f` file and edit the following section:
+
+```hcl
+module "aws" {
+  #  source  = "./aws-mini"
+  source  = "./aws"
+  count   = var.cfg.target == "aws" ? 1 : 0
+  options = local.options
+}
+```
+
+So that it reads:
+
+```hcl
+module "aws" {
+  source  = "./aws-mini"
+  # source  = "./aws"
+  count   = var.cfg.target == "aws" ? 1 : 0
+  options = local.options
+}
+```
+
+and run the `prepare.sh` script (only when AWS hasn't been selected before, it is selected by default when cloning the repository).
+
+#### Configure the mini variant
+
+Ensure that `aws.subnet_id` and `aws.sg_id`  have valid values and that those resources exist on AWS.
 
 ### Terraform installation
 
@@ -526,6 +575,7 @@ ssh -p1122 sysadmin@IP_ADDRESS_OF_CONTROLLER /provision/del.sh
 ```
 
 This requires all labs to be stopped (no running VMs allowed) prior to removing the license. It will only work as long as the provisioned usernames and passwords have not changed between deployment and destruction of the instance.
+
 ## VPC support
 
 With 0.3.0, the tooling always adds a custom VPC and doesn't use the default VPC anymore.  Additional variables have been added to the configuration file `config.yml` to support this.
