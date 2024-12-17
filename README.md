@@ -1,12 +1,16 @@
 # README
 
-Version 0.3.0, June 4 2024
+Version 0.3.1, November 29 2024
 
 With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML deployments using this tool chain in both clouds.  **The use of this tool is considered BETA**.  The tool has certain requirements and prerequisites which are described in this README and in the [documentation](documentation) directory.
 
 *It is very likely that this tool chain can not be used "as-is"*.  It should be forked and adapted to specific customer requirements and environments.
 
 > [!IMPORTANT]
+>
+> **Version 2.7 vs 2.8**
+>
+> CML2 version 2.8 has been released in November 2024.  As CML 2.8 uses Ubuntu 24.04 as the base operating system, cloud-cml needs to accommodate for that during image selection when bringing up the VM on the hosting service (AWS, Azure, ...).  This means that going forward, cloud-cml will support 2.8 and not 2.7 anymore.  This release will be the last that does support CML 2.7!
 >
 > **Support:**
 >

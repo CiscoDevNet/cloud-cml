@@ -16,7 +16,15 @@ aws:
   flavor: m5zn.metal
   flavor_compute: m5zn.metal
   profile: permission-profile-goes-here
-  # when specifying a VPC ID below then this prefix must exist on that VPC!
+  #
+  # The following two attributes are used in the aws-mini variant. They specify
+  # the subnet and the security group ID the CML VM should use. The are NOT
+  # used when using the regular AWS deployment option (non-mini).
+  subnet_id: ""
+  sg_id: ""
+  #
+  # The followin values are used by the regular AWS deployment option.
+  # When specifying a VPC ID below then this prefix must exist on that VPC!
   public_vpc_ipv4_cidr: 10.0.0.0/16
   enable_ebs_encryption: false
   allowed_ipv4_subnets: ["0.0.0.0/0"]
@@ -25,6 +33,8 @@ aws:
   # also: an IPv6 CIDR prefix must be associated with the specified VPC
   vpc_id: ""
   gw_id: ""
+  #
+  # Use spot instances, when available for the VMs forming the cluster
   spot_instances:
     use_spot_for_controller: false
     use_spot_for_computes: false
@@ -119,7 +129,7 @@ app:
   # **No longer used, see the secret manager section above**
   #user: admin
   #pass: your-secret-password
-  software: cml2-software-package-name.pkg
+  software: cml2_2.7.2-26_amd64-29.pkg
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
   customize:
