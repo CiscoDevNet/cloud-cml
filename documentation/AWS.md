@@ -367,7 +367,7 @@ AWS CLI configurations are stored in `$HOME/.aws`.
 
 If everything was configured correct then you should be able to list instances (remember that we permitted EC2 access for the deployment users):
 
-```
+```bash
 $ aws ec2 describe-instances
 {
     "Reservations": []
@@ -379,7 +379,7 @@ As there are no instances running in this case, the output is empty. The importa
 
 ### Configuration file
 
-CML specific settings are specified in the configuration file `config.yml`.  See also [VPC support](#vpc-support) and [Cluster support](#cluster-suport) sections further down in the document.
+CML specific settings are specified in the configuration file `config.yml`.  See also [VPC support](#vpc-support) and [Cluster support](#cluster-support) sections further down in the document.
 
 #### AWS section
 
@@ -515,7 +515,7 @@ Start the tool by providing the bucket name as an argument and the location of t
 
 The tool will then display a simple dialog where the images which should be copied to the bucket can be selected:
 
-![](../images/upload-refplat.png)
+![Dialog preview](../images/upload-refplat.png)
 
 After selecting OK the upload process will be started immediately. To abort the process, Ctrl-C can be used.
 
@@ -538,6 +538,8 @@ export TF_VAR_secret_key="your-secret-key-string-from-iam"
 ```
 
 Alternatively, it's also possible to provide values for variables via a file called `terraform.tfvars` file. There are various ways how to define / set variables with Terraform. See the Terraform [documentation](https://developer.hashicorp.com/terraform/language/values/variables#assigning-values-to-root-module-variables) for additional details.
+
+In addition to the above methods, Terraform can also automatically retrieve authentication credentials from the AWS configuration files located in the .aws folder. This includes credentials set up by running `aws configure`, which stores your access key and secret key in the `~/.aws/credentials` file. This method allows Terraform to use the same credentials configured for the AWS CLI, [documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs).
 
 ## Lifecycle management
 

@@ -105,7 +105,7 @@ resource "azurerm_network_security_rule" "cml_std" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_ranges     = [22, 80, 443, 1122, 9090]
-  source_address_prefix       = "*"
+  source_address_prefixes     = var.options.cfg.azure.allowed_ipv4_subnets
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name
   network_security_group_name = azurerm_network_security_group.cml.name
@@ -120,7 +120,7 @@ resource "azurerm_network_security_rule" "cml_patty_tcp" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "2000-7999"
-  source_address_prefix       = "*"
+  source_address_prefixes     = var.options.cfg.azure.allowed_ipv4_subnets
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name
   network_security_group_name = azurerm_network_security_group.cml.name
@@ -135,7 +135,7 @@ resource "azurerm_network_security_rule" "cml_patty_udp" {
   protocol                    = "Udp"
   source_port_range           = "*"
   destination_port_range      = "2000-7999"
-  source_address_prefix       = "*"
+  source_address_prefixes     = var.options.cfg.azure.allowed_ipv4_subnets
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name
   network_security_group_name = azurerm_network_security_group.cml.name
@@ -235,8 +235,8 @@ resource "azurerm_linux_virtual_machine" "cml" {
   # https://canonical-azure.readthedocs-hosted.com/en/latest/azure-explanation/daily-vs-release-images/
   source_image_reference {
     publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-focal"
-    sku       = "20_04-lts"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "server"
     version   = "latest"
   }
 

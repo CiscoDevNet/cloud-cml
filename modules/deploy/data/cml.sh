@@ -16,13 +16,35 @@ source /provision/vars.sh
 
 function setup_pre_aws() {
     export AWS_DEFAULT_REGION=${CFG_AWS_REGION}
-    apt-get install -y awscli
+    apt-get install -y unzip
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip -q awscliv2.zip
+    ./aws/install
+    rm -f awscliv2.zip
+    rm -rf aws/
 }
 
 function setup_pre_azure() {
     curl -LO https://aka.ms/downloadazcopy-v10-linux
     tar xvf down* --strip-components=1 -C /usr/local/bin
     chmod a+x /usr/local/bin/azcopy
+}
+
+function wait_for_network_manager() {
+    counter=0
+    max_wait=60
+    
+    while ! systemctl is-active --quiet NetworkManager && [ $counter -lt $max_wait ]; do
+        echo "Waiting for NetworkManager to become active..."
+        sleep 5
+        counter=$((counter + 5))
+    done
+    
+    if systemctl is-active --quiet NetworkManager; then
+        echo "NetworkManager is active."
+    else
+        echo "NetworkManager did not become active after $max_wait seconds."
+    fi
 }
 
 function base_setup() {
@@ -66,8 +88,9 @@ function base_setup() {
     apt-get install -y /tmp/*.deb
     # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
     /provision/interface_fix.py
-    systemctl restart network-manager
+    systemctl restart NetworkManager
     netplan apply
+    wait_for_network_manager
     # Fix for the headless setup (tty remove as the cloud VM has none)
     sed -i '/^Standard/ s/^/#/' /lib/systemd/system/virl2-initial-setup.service
     touch /etc/.virl2_unconfigured
@@ -98,9 +121,8 @@ function base_setup() {
         exit 1
     fi
 
-    # for good measure, apply the network config again
-    netplan apply
     systemctl enable --now ssh.service
+    wait_for_network_manager
 
     # clean up software .pkg / .deb packages
     rm -f /provision/*.pkg /provision/*.deb /tmp/*.deb
@@ -110,9 +132,10 @@ function base_setup() {
     /usr/local/bin/virl2-bridge-setup.py --delete
     sed -i /usr/local/bin/virl2-bridge-setup.py -e '2iexit()'
     # remove the CML specific netplan config
-    rm /etc/netplan/00-cml2-base.yaml
+    find /etc/netplan/ -maxdepth 1 -type f -name '*.yaml' ! -name '50-cloud-init.yaml' -exec rm -f {} +
     # apply to ensure gateway selection below works
     netplan apply
+    wait_for_network_manager
 
     # no PaTTY on computes
     if ! is_controller; then
@@ -141,7 +164,7 @@ function cml_configure() {
         # Directory doesn't exist - Move the entire .ssh directory
         mv /home/$clouduser/.ssh/ /home/${CFG_SYS_USER}/
     fi
-    chown -R ${CFG_SYS_USER}.${CFG_SYS_USER} /home/${CFG_SYS_USER}/.ssh
+    chown -R ${CFG_SYS_USER}:${CFG_SYS_USER} /home/${CFG_SYS_USER}/.ssh
 
     # disable access for the user but keep it as cloud-init requires it to be
     # present, otherwise one of the final modules will fail.
@@ -152,7 +175,7 @@ function cml_configure() {
     chmod g+r /provision/vars.sh
 
     # Change the ownership of the del.sh script to the sysadmin user
-    chown ${CFG_SYS_USER}.${CFG_SYS_USER} /provision/del.sh
+    chown ${CFG_SYS_USER}:${CFG_SYS_USER} /provision/del.sh
 
     # Check if this device is a controller
     if ! is_controller; then

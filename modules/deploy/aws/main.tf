@@ -87,7 +87,7 @@ locals {
       "from_port" : 1122,
       "to_port" : 1122
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.aws.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -98,7 +98,7 @@ locals {
       "from_port" : 22,
       "to_port" : 22
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.aws.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -109,7 +109,7 @@ locals {
       "from_port" : 9090,
       "to_port" : 9090
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.aws.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -120,7 +120,7 @@ locals {
       "from_port" : 80,
       "to_port" : 80
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.aws.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -131,7 +131,7 @@ locals {
       "from_port" : 443,
       "to_port" : 443
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.aws.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -145,7 +145,7 @@ locals {
       "from_port" : 2000,
       "to_port" : 7999
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.aws.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -156,7 +156,7 @@ locals {
       "from_port" : 2000,
       "to_port" : 7999
       "protocol" : "udp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.aws.allowed_ipv4_subnets,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -279,6 +279,7 @@ resource "aws_network_interface" "pub_int_cml" {
 resource "aws_eip" "server_eip" {
   network_interface = aws_network_interface.pub_int_cml.id
   tags              = { "Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server" }
+  depends_on = [aws_instance.cml_controller]
 }
 
 #------------- compute subnet, NAT GW, routing and interfaces -----------------
@@ -498,7 +499,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 
   filter {

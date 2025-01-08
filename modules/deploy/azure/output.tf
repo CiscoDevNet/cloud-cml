@@ -5,7 +5,7 @@
 #
 
 output "public_ip" {
-  value = azurerm_linux_virtual_machine.cml.public_ip_address
+  value = azurerm_public_ip.cml.ip_address
 }
 
 output "sas_token" {
