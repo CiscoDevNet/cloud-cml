@@ -33,13 +33,13 @@ function setup_pre_azure() {
 function wait_for_network_manager() {
     counter=0
     max_wait=60
-    
+
     while ! systemctl is-active --quiet NetworkManager && [ $counter -lt $max_wait ]; do
         echo "Waiting for NetworkManager to become active..."
         sleep 5
         counter=$((counter + 5))
     done
-    
+
     if systemctl is-active --quiet NetworkManager; then
         echo "NetworkManager is active."
     else
