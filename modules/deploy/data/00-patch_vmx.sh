@@ -14,7 +14,7 @@
 # Some platforms like Linux, IOSv and IOSv-L2 will still work but others will
 # not and crash!
 
-echo -n "no-VMX patch..."
+echo "no-VMX patch..."
 (
     cd /var/local/virl2/.local/lib/python3.12/site-packages
     patch -p1 --forward <<EOF

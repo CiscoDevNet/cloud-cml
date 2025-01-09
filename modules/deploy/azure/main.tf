@@ -37,6 +37,7 @@ locals {
     copyfile      = var.options.copyfile
     del           = var.options.del
     interface_fix = var.options.interface_fix
+    license       = var.options.license
     extras        = var.options.extras
     hostname      = var.options.cfg.common.controller_hostname
     path          = path.module
@@ -236,7 +237,7 @@ resource "azurerm_linux_virtual_machine" "cml" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "ubuntu-24_04-lts"
-    sku       = "server"
+    sku       = "minimal"
     version   = "latest"
   }
 

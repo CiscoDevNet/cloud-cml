@@ -59,6 +59,7 @@ locals {
     copyfile      = var.options.copyfile
     del           = var.options.del
     interface_fix = var.options.interface_fix
+    license       = var.options.license
     extras        = var.options.extras
     hostname      = var.options.cfg.common.controller_hostname
     path          = path.module
@@ -73,6 +74,7 @@ locals {
     copyfile      = var.options.copyfile
     del           = var.options.del
     interface_fix = var.options.interface_fix
+    license       = "empty"
     extras        = var.options.extras
     hostname      = local.compute_hostnames[i]
     path          = path.module
@@ -279,7 +281,7 @@ resource "aws_network_interface" "pub_int_cml" {
 resource "aws_eip" "server_eip" {
   network_interface = aws_network_interface.pub_int_cml.id
   tags              = { "Name" = "CML-controller-eip-${var.options.rand_id}", "device" = "server" }
-  depends_on = [aws_instance.cml_controller]
+  depends_on        = [aws_instance.cml_controller]
 }
 
 #------------- compute subnet, NAT GW, routing and interfaces -----------------

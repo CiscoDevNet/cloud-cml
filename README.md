@@ -118,17 +118,21 @@ Regardless of the secret manager in use or whether you use random passwords or n
 ##### CyberArk Conjur installation
 
 > [!IMPORTANT]
-> CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`. 
+> CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`.
 
 These steps are only required if using CyberArk Conjur as an external secrets manager.
+
 1. Download the [CyberArk Conjur provider](https://github.com/cyberark/terraform-provider-conjur/releases).
 2. Copy the custom provider to `~/.terraform.d/plugins/localhost/cyberark/conjur/<version>/<architecture>/terraform-provider-conjur_v<version>`
+
    ```bash
    $ mkdir -vp ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
    $ unzip ~/terraform-provider-conjur_0.6.7-4_darwin_arm64.zip -d ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
    $
    ```
+
 3. Create a `.terraformrc` file in the user's home:
+
    ```hcl
    provider_installation {
      filesystem_mirror {
@@ -180,11 +184,11 @@ There's two Terraform variables which can be defined / set to further customize 
 - `cfg_extra_vars`: This variable defines the name of a file with additional variable definitions.  The default is "none".
 
 ```bash
-export TF_VAR_access_key="aws-something"
-export TF_VAR_secret_key="aws-somethingelse"
+export TF_VAR_aws_access_key="aws-something"
+export TF_VAR_aws_secret_key="aws-somethingelse"
 
-# export TF_VAR_subscription_id="azure-something"
-# export TF_VAR_tenant_id="azure-something-else"
+# export TF_VAR_azure_subscription_id="azure-something"
+# export TF_VAR_azure_tenant_id="azure-something-else"
 
 export TF_VAR_cfg_file="config-custom.yml"
 export TF_VAR_cfg_extra_vars="extras.sh"

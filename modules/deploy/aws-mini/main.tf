@@ -40,6 +40,7 @@ locals {
     copyfile      = var.options.copyfile
     del           = var.options.del
     interface_fix = var.options.interface_fix
+    license       = var.options.license
     extras        = var.options.extras
     hostname      = var.options.cfg.common.controller_hostname
     path          = path.module
@@ -93,7 +94,7 @@ data "aws_ami" "ubuntu" {
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"]
   }
 
   filter {

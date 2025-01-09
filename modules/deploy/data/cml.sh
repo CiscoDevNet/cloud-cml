@@ -83,7 +83,19 @@ function base_setup() {
     copyfile ${CFG_APP_SOFTWARE} /provision/
     tar xvf /provision/${CFG_APP_SOFTWARE} --wildcards -C /tmp 'cml2*_amd64.deb' 'patty*_amd64.deb' 'iol-tools*_amd64.deb'
     systemctl stop ssh
-    apt-get install -y /tmp/*.deb
+
+    # install i386 architecture if the version requires it
+    # Package is not installed at this point in time
+    # version=$(dpkg-query --showformat='${Version}' --show cml2)
+    version=$(ls /tmp/cml2_*_amd64.deb | awk -F_ '{print $2}')
+    if dpkg --compare-versions "$version" ge 2.7.0; then
+        dpkg --add-architecture i386
+        apt-get update
+    fi
+
+    # install packages (and NetworkManager, just to be sure it's there)
+    apt-get install -y network-manager /tmp/*.deb
+
     # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
     /provision/interface_fix.py
     systemctl restart NetworkManager
@@ -186,60 +198,9 @@ function cml_configure() {
         sleep 5
     done
 
-    # TODO: the licensing should use the PCL -- it's there, and it can do it
-    # via a small Python script
-
-    # Acquire a token
-    TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \  |
-        curl -s -d@- $API/authenticate | jq -r)
-
-    # This is still local, everything below talks to GCH licensing servers
-    curl -s -X "PUT" \
-        "$API/licensing/product_license" \
-        -H "Authorization: Bearer $TOKEN" \
-        -H "accept: application/json" \
-        -H "Content-Type: application/json" \
-        -d '"'${CFG_LICENSE_FLAVOR}'"'
-
-    # licensing, register w/ SSM and check result/compliance
-    attempts=5
-    while [ $attempts -gt 0 ]; do
-        curl -vs -X "POST" \
-            "$API/licensing/registration" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "accept: application/json" \
-            -H "Content-Type: application/json" \
-            -d '{"token":"'${CFG_LICENSE_TOKEN}'","reregister":false}'
-        sleep 5
-        result=$(curl -s -X "GET" \
-            "$API/licensing" \
-            -H "Authorization: Bearer $TOKEN" \
-            -H "accept: application/json")
-
-        if [ "$(echo $result | jq -r '.registration.status')" = "COMPLETED" ] && [ "$(echo $result | jq -r '.authorization.status')" = "IN_COMPLIANCE" ]; then
-            break
-        fi
-        echo "no license, trying again ($attempts)"
-        ((attempts--))
-    done
-
-    if [ $attempts -eq 0 ]; then
-        echo "licensing failed!"
-        return 1
-    fi
-
-    # No need to put in node licenses - unavailable
-    if [[ ${CFG_LICENSE_FLAVOR} =~ ^CML_Personal || ${CFG_LICENSE_NODES} == 0 ]]; then
-        return 0
-    fi
-
-    ID="regid.2019-10.com.cisco.CML_NODE_COUNT,1.0_2607650b-6ca8-46d5-81e5-e6688b7383c4"
-    curl -vs -X "PATCH" \
-        "$API/licensing/features" \
-        -H "Authorization: Bearer $TOKEN" \
-        -H "accept: application/json" \
-        -H "Content-Type: application/json" \
-        -d '{"'$ID'":'${CFG_LICENSE_NODES}'}'
+    # Put the license and users in place
+    export CFG_APP_USER CFG_APP_PASS CFG_LICENSE_NODE CFG_LICENSE_FLAVOR CFG_LICENSE_TOKEN
+    HOME=/var/local/virl2 python3 /provision/license.py
 }
 
 function postprocess() {
@@ -258,7 +219,7 @@ function postprocess() {
     fi
 }
 
-echo "### Provisioning via cml.sh starts"
+echo "### Provisioning via cml.sh STARTS $(date)"
 
 # AWS specific (?):
 # For troubleshooting. To allow console access on AWS, the root user needs a
@@ -288,13 +249,19 @@ esac
 # Only run the base setup when there's a provision directory both with
 # Terraform and with Packer but not when deploying an AMI
 if [ -d /provision ]; then
+    echo "### base setup STARTS $(date)"
     base_setup
 fi
 
 # Only do a configure when this is not run within Packer / AMI building
 if [ ! -f /tmp/PACKER_BUILD ]; then
+    echo "### configure STARTS $(date)"
     cml_configure ${CFG_TARGET}
+    echo "### postprocess STARTS $(date)"
     postprocess
     # netplan apply
     # systemctl reboot
 fi
+
+echo "### Provisioning via cml.sh ENDS"
+date

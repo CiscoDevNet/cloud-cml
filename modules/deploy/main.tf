@@ -16,6 +16,7 @@ locals {
     copyfile      = file("${path.module}/data/copyfile.sh")
     del           = file("${path.module}/data/del.sh")
     interface_fix = file("${path.module}/data/interface_fix.py")
+    license       = file("${path.module}/data/license.py")
     extras        = var.extras
     rand_id       = random_id.id.hex
   }
