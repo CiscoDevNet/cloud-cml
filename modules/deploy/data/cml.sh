@@ -1,11 +1,9 @@
 #!/bin/bash
-
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2024, Cisco Systems, Inc.
+# Copyright (c) 2019-2025, Cisco Systems, Inc.
 # All rights reserved.
 #
-
 # :%!shfmt -ci -i 4 -
 # set -x
 # set -e
