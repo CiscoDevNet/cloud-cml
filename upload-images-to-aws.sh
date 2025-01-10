@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Copyright (c) 2019-2024, Cisco Systems, Inc.
+# Copyright (c) 2019-2025, Cisco Systems, Inc.
 # All rights reserved.
 #
 # This script can be installed on an on-prem CML controller which also has the
@@ -60,7 +60,7 @@ if [ -z "$(which dialog)" ]; then
     exit 255
 fi
 
-if [ ! -d $ISO ]; then 
+if [ ! -d $ISO ]; then
     echo "Provided reference platform path \"$ISO\" does not exist!"
     exit 255
 fi
@@ -91,7 +91,7 @@ if [ -n "$cmlpkg" ]; then
 fi
 
 pushd &>/dev/null virl-base-images
-options=$(find . -name '*.yaml' -exec sh -c 'basename '{}'; echo "on"' \; )
+options=$(find . -name '*.yaml' -exec sh -c 'basename '{}'; echo "on"' \;)
 popd &>/dev/null
 
 if [ -z "$options" ]; then
@@ -100,8 +100,9 @@ if [ -z "$options" ]; then
     exit 255
 fi
 
-selection=$(dialog --stdout --no-items --separate-output --checklist \
-    "Select images to copy to AWS bucket \"${BUCKETNAME}\"" 0 60 20 $options \
+selection=$(
+    dialog --stdout --no-items --separate-output --checklist \
+        "Select images to copy to AWS bucket \"${BUCKETNAME}\"" 0 60 20 $options
 )
 s=$?
 clear

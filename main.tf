@@ -1,6 +1,6 @@
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2024, Cisco Systems, Inc.
+# Copyright (c) 2019-2025, Cisco Systems, Inc.
 # All rights reserved.
 #
 
@@ -25,9 +25,11 @@ module "secrets" {
 }
 
 module "deploy" {
-  source = "./modules/deploy"
-  cfg    = local.cfg
-  extras = local.extras
+  source                = "./modules/deploy"
+  cfg                   = local.cfg
+  extras                = local.extras
+  azure_subscription_id = var.azure_subscription_id
+  azure_tenant_id       = var.azure_tenant_id
 }
 
 provider "cml2" {

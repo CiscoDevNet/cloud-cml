@@ -1,11 +1,11 @@
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2024, Cisco Systems, Inc.
+# Copyright (c) 2019-2025, Cisco Systems, Inc.
 # All rights reserved.
 #
 
 output "public_ip" {
-  value = azurerm_linux_virtual_machine.cml.public_ip_address
+  value = azurerm_public_ip.cml.ip_address
 }
 
 output "sas_token" {

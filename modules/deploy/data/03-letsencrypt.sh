@@ -1,8 +1,7 @@
 #!/bin/bash
-
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2024, Cisco Systems, Inc.
+# Copyright (c) 2019-2025, Cisco Systems, Inc.
 # All rights reserved.
 #
 
@@ -74,13 +73,15 @@ if ! [ -d /etc/letsencrypt/live/$CFG_HN ]; then
 fi
 
 # copy the cert to the nginx configuration
-cp /etc/letsencrypt/live/$CFG_HN/fullchain.pem /etc/nginx/fullchain.pem
+mkdir /etc/nginx/oldcerts
+mv /etc/nginx/*.pem /etc/nginx/oldcerts/
+cp /etc/letsencrypt/live/$CFG_HN/fullchain.pem /etc/nginx/pubkey.pem
 cp /etc/letsencrypt/live/$CFG_HN/privkey.pem /etc/nginx/privkey.pem
 
-# write the cert chain into the file that Cockpit uses
-cat /etc/letsencrypt/live/$CFG_HN/privkey.pem \
-    /etc/letsencrypt/live/$CFG_HN/fullchain.pem \
-    >/etc/cockpit/ws-certs.d/0-self-signed.cert
+# write the cert into the file that Cockpit uses, note that Cockpit wants
+# the cert only, not the full chain.
+cat /etc/letsencrypt/live/$CFG_HN/privkey.pem >/etc/cockpit/ws-certs.d/0-self-signed.key
+sed '/-----END CERTIFICATE-----/q' $ /etc/letsencrypt/live/$CFG_HN/fullchain.pem >/etc/cockpit/ws-certs.d/0-self-signed.cert
 
 # reload affected services
 systemctl reload nginx

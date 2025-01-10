@@ -1,7 +1,5 @@
 # Azure
 
-Version 0.3.0, April 17 2024
-
 This document explains specific configuration steps to deploy a Cisco Modeling Labs (CML) instance in Azure.
 
 ## General requirements
@@ -45,8 +43,8 @@ The provided subscription ID and the tenant ID need to be configured as Terrafor
 
 { read subID ; read tenantID; } <<< "$(az account list --output=json | jq -r '.[0]|.id,.tenantId')"
 
-export TF_VAR_tenant_id="$tenantID"
-export TF_VAR_subscription_id="$subID"
+export TF_VAR_azure_tenant_id="$tenantID"
+export TF_VAR_azure_subscription_id="$subID"
 ```
 
 The values can be provided directly as well (e.g. copying and pasting them into the script).

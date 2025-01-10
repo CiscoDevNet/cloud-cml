@@ -2,6 +2,24 @@
 
 Lists the changes for the tool releases.
 
+## Version 2.8.0
+
+- using "aws\_" and "azure\_" prefixes to provide tokens and IDs in the environment (see `.envrc.example`)
+- adapt tooling to work with 2.8.0 (move base OS from 20.04 to 24.04)
+- allow to use the `allowed_ipv4_subnets` also for Azure
+- improve network manager handling while provisioning
+- licensing now uses the PCL instead of curl and bash
+- documentation improvements and fixes
+
+## Version 2.7.2
+
+- added the AWS mini variant which does not manage any network resources, the
+  subnet and security group ID
+- change elastic IP allocation for AWS from dynamic to static to make it work
+  again
+- this is the last release to support CML 2.7 and before
+- changed the versioning to match the CML version so that it's easier to find the proper version / release of cloud-cml which works with the CML version to be used
+
 ## Version 0.3.0
 
 - allow cluster deployments on AWS.

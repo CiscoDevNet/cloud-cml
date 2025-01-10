@@ -1,8 +1,8 @@
 # README
 
-Version 0.3.1, November 29 2024
+Version 2.8.0, January 10 2025
 
-With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML deployments using this tool chain in both clouds.  **The use of this tool is considered BETA**.  The tool has certain requirements and prerequisites which are described in this README and in the [documentation](documentation) directory.
+CML instances can run on Azure and AWS cloud infrastructure.  This repository provides automation tooling using Terraform to deploy and manage CML in the cloud.  We have tested CML deployments using this tool chain in both clouds.  **The use of this tool is considered BETA**.  The tool has certain requirements and prerequisites which are described in this README and in the [documentation](documentation) directory.
 
 *It is very likely that this tool chain can not be used "as-is"*.  It should be forked and adapted to specific customer requirements and environments.
 
@@ -10,7 +10,7 @@ With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML de
 >
 > **Version 2.7 vs 2.8**
 >
-> CML2 version 2.8 has been released in November 2024.  As CML 2.8 uses Ubuntu 24.04 as the base operating system, cloud-cml needs to accommodate for that during image selection when bringing up the VM on the hosting service (AWS, Azure, ...).  This means that going forward, cloud-cml will support 2.8 and not 2.7 anymore.  This release will be the last that does support CML 2.7!
+> CML2 version 2.8 has been released in November 2024.  As CML 2.8 uses Ubuntu 24.04 as the base operating system, cloud-cml needs to accommodate for that during image selection when bringing up the VM on the hosting service (AWS, Azure, ...).  This means that going forward, cloud-cml supports 2.8 and not 2.7 anymore.  If CML versions earlier than CML 2.8 should be used then please select the release with the tag `v2.7.2` that still supports CML 2.7!
 >
 > **Support:**
 >
@@ -118,17 +118,21 @@ Regardless of the secret manager in use or whether you use random passwords or n
 ##### CyberArk Conjur installation
 
 > [!IMPORTANT]
-> CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`. 
+> CyberArk Conjur is not currently in the Terraform Registry.  You must follow its [installation instructions](https://github.com/cyberark/terraform-provider-conjur?tab=readme-ov-file#terraform-provider-conjur) before running `terraform init`.
 
 These steps are only required if using CyberArk Conjur as an external secrets manager.
+
 1. Download the [CyberArk Conjur provider](https://github.com/cyberark/terraform-provider-conjur/releases).
 2. Copy the custom provider to `~/.terraform.d/plugins/localhost/cyberark/conjur/<version>/<architecture>/terraform-provider-conjur_v<version>`
+
    ```bash
    $ mkdir -vp ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
    $ unzip ~/terraform-provider-conjur_0.6.7-4_darwin_arm64.zip -d ~/.terraform.d/plugins/localhost/cyberark/conjur/0.6.7/darwin_arm64/
    $
    ```
+
 3. Create a `.terraformrc` file in the user's home:
+
    ```hcl
    provider_installation {
      filesystem_mirror {
@@ -145,19 +149,16 @@ These steps are only required if using CyberArk Conjur as an external secrets ma
 
 Terraform can be downloaded for free from [here](https://developer.hashicorp.com/terraform/downloads). This site has also instructions how to install it on various supported platforms.
 
-Deployments of CML using Terraform were tested using the versions mentioned below on Ubuntu Linux and macOS.
+Deployments of CML using Terraform were tested using the versions mentioned below on Ubuntu Linux.
 
 ```bash
 $ terraform version
-Terraform v1.8.0
-on darwin_arm64
-+ provider registry.terraform.io/ciscodevnet/cml2 v0.7.0
-+ provider registry.terraform.io/hashicorp/aws v5.45.0
-+ provider registry.terraform.io/hashicorp/azurerm v3.99.0
-+ provider registry.terraform.io/hashicorp/cloudinit v2.3.3
+Terraform v1.10.4
+on linux_amd64
++ provider registry.terraform.io/ciscodevnet/cml2 v0.8.1
++ provider registry.terraform.io/hashicorp/aws v5.83.0
++ provider registry.terraform.io/hashicorp/cloudinit v2.3.5
 + provider registry.terraform.io/hashicorp/random v3.6.1
-+ provider registry.terraform.io/hashicorp/vault v4.2.0
-+ provider localhost/cyberark/conjur v0.6.7
 $
 ```
 
@@ -179,12 +180,14 @@ There's two Terraform variables which can be defined / set to further customize 
 - `cfg_file`: This variable defines the configuration file.  It defaults to `config.yml`.
 - `cfg_extra_vars`: This variable defines the name of a file with additional variable definitions.  The default is "none".
 
-```bash
-export TF_VAR_access_key="aws-something"
-export TF_VAR_secret_key="aws-somethingelse"
+Here's an example of an `.envrc` file to set environment variable.  Note the last two lines which define the configuration file to use and the extra shell file which defines additional environment variables.
 
-# export TF_VAR_subscription_id="azure-something"
-# export TF_VAR_tenant_id="azure-something-else"
+```bash
+export TF_VAR_aws_access_key="aws-something"
+export TF_VAR_aws_secret_key="aws-somethingelse"
+
+# export TF_VAR_azure_subscription_id="azure-something"
+# export TF_VAR_azure_tenant_id="azure-something-else"
 
 export TF_VAR_cfg_file="config-custom.yml"
 export TF_VAR_cfg_extra_vars="extras.sh"
@@ -199,9 +202,9 @@ CFG_HN="domainname"
 CFG_EMAIL="noone@acme.com"
 ```
 
-In this example, four additional variables are defined which can be used in customization scripts during deployment to provide data (usernames, passwords, ...) for specific services like configuring DNS.
+In this example, four additional variables are defined which can be used in customization scripts during deployment to provide data (usernames, passwords, ...) for specific services like configuring DNS.  See the `03-letsencrypt.sh` file which installs a valid certificate into CML, using LetsEncrypt and DynDNS for domain name services.
 
-See the AWS specific document for additional information how to define variables in the environment using tools like `direnv` ("Terraform variable definition").
+See the AWS specific document for additional information how to define variables in the environment using tools like `direnv`  or `mise`.
 
 ## Additional customization scripts
 
@@ -224,6 +227,6 @@ Extra variable definitions and additional scripts will all be stored in the user
 
 All scripts are copied as they are including all comments which will require even more space.
 
-A potential solution to the data limit is to provide the scripts in storage by bundling them up into a tar file or similar, store the tar file in S3 and then only reference this file in the user-data.  However, this hasn't been implemented, yet.
+Cloud-cml currently uses the cloud-init Terraform provider which allows compressed storage of this data.  This allows to store more scripts and configuration due to the compression.  The 16KB limit is still in place for the compressed data, though.
 
 EOF

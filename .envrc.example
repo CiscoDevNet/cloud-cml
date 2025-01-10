@@ -25,8 +25,8 @@
 # Azure
 #
 
-#export TF_VAR_subscription_id=""
-#export TF_VAR_tenant_id=""
+#export TF_VAR_azure_subscription_id=""
+#export TF_VAR_azure_tenant_id=""
 
 #########
 # Secrets
