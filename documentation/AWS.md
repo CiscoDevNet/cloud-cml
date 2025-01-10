@@ -42,7 +42,7 @@ As mentioned at the top, there's an `aws-mini` deployment option as an alternati
 
 The mini flavor is useful in case the AWS networking infrastructure is already in place and can not or should not be modified, cloud-cml should simply create a CML instance that uses the existing networking infrastructure by providing the subnet ID and the security group ID that should be used to attach the CML VM to.
 
-*If no Elastic IP should be used and the server should use a private IP from the configured subnet instead then this is configurable in the .tf file.  See the comment for the `resource "aws_eip" "server_eip"` inside of `main.tf` for the mini variant.
+If no Elastic IP should be used and the server should use a private IP from the configured subnet instead then this is configurable in the .tf file.  See the comment for the `resource "aws_eip" "server_eip"` inside of `main.tf` for the mini variant.
 
 #### How to enable the mini variant
 
