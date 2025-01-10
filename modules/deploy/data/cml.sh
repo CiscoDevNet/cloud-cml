@@ -263,5 +263,4 @@ if [ ! -f /tmp/PACKER_BUILD ]; then
     # systemctl reboot
 fi
 
-echo "### Provisioning via cml.sh ENDS"
-date
+echo "### Provisioning via cml.sh ENDS $(date)"

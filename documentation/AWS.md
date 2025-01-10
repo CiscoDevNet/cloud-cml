@@ -1,11 +1,9 @@
 # AWS
 
-Version 0.3.1, November 2024
-
 This document contains specific configuration steps to deploy a CML instance in AWS. Some sections from the top level document are repeated here with additional detail regarding AWS.
 
 > [!IMPORTANT]
-> The repository includes an alternative deployment method for AWS (aws-mini) which does not create any network resources.  It therefore relies on these resources to be available at the time of deploying CML.  See the "Mini vs regular deployments" section below!
+> The repository includes an alternative deployment method for AWS (aws-mini) which does not create any network resources.  It therefore relies on these resources to be available at the time of deploying CML.  See the ["Mini vs regular deployments"](#mini-vs-regular-deployments) section below!
 
 ## General requirements
 
@@ -303,7 +301,7 @@ The final step is about creating access credentials that can be used with Terraf
 - click on "Create access key"
 - make a note of the access key and the secret key (copy them into an editor so that they can be later used when editing the `config.yml` of the deployment tool)
 
-This access key and the associated secret key must be provided to the AWS Terraform provider via the variables `aws_access_key` and `aws_secret_key`, ideally via environment variables or a vault. See the Variables section below.
+This access key and the associated secret key must be provided to the AWS Terraform provider via the variables `aws_access_key` and `aws_secret_key`, ideally via environment variables or a vault. See the [Variables section](#terraform-variable-definition) below.
 
 #### Example
 
@@ -528,7 +526,7 @@ Help can be obtained via `./upload-images-to-aws.sh --help`.
 
 The `variable.tf` defines the authentication secrets needed by the Terraform AWS provider.
 
-Here's an example using a bash script that can be sourced and which defines those variables. To automate things further, a tool like [direnv](https://direnv.net/) can be used to load this environment when changing into the directory which has this file.
+Here's an example using a bash script that can be sourced and which defines those variables. To automate things further, a tool like [direnv](https://direnv.net/) or [mise-en-place](https://mise.jdx.dev/) can be used to load this environment when changing into the directory which has this file.
 
 Content of file `.envrc`:
 
