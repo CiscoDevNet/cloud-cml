@@ -25,14 +25,14 @@ from time import sleep
 from httpx import HTTPStatusError
 from virl2_client import ClientLibrary
 
-admin = os.getenv("CFG_APP_USER", "")
+<virl_username> = os.getenv("CFG_APP_USER", "")
 password = os.getenv("CFG_APP_PASS", "")
 hostname = os.getenv("CFG_COMMON_HOSTNAME", "")
 
 attempts = 6
 while attempts > 0:
     try:
-        client = ClientLibrary(f"https://{hostname}", admin, password, ssl_verify=False)
+        client = ClientLibrary(f"https://{hostname}", <virl_username>, password, ssl_verify=<cml_verify_cert>)
     except HTTPStatusError as exc:
         print(exc)
         sleep(10)
@@ -47,7 +47,7 @@ USER_COUNT = 20
 # create 20 users (and pod0 is for us to use, in total 21)
 
 # the below block is to remove users again, used for testing
-if False:
+if <cml_verify_cert>:
     for id in range(0, USER_COUNT + 1):
         user_id = client.user_management.user_id(f"pod{id}")
         client.user_management.delete_user(user_id)

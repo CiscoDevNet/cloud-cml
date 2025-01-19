@@ -14,4 +14,3 @@ CFG_SAS_TOKEN="${cfg.sas_token}"
 CFG_SYS_PASS="${cfg.secrets.sys.secret}"
 CFG_SYS_USER="${cfg.secrets.sys.username}"
 CFG_TARGET="${cfg.target}"
-

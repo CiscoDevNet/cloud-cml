@@ -21,3 +21,13 @@ locals {
   }
 }
 
+terraform {
+  required_providers {
+    cml2 = {
+      source                = "ciscodevnet/cml2"
+      version               = "~> 0.8.1"
+      configuration_aliases = [cml2.controller]
+    }
+  }
+}
+

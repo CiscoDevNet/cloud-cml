@@ -1,4 +1,4 @@
-admins:
+<virl_username>s:
   controller:
     password: ${cfg.secrets.app.secret}
     username: ${cfg.secrets.app.username}

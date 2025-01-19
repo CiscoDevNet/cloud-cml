@@ -16,7 +16,30 @@ source /provision/vars.sh
 
 function setup_pre_aws() {
     export AWS_DEFAULT_REGION=${CFG_AWS_REGION}
-    apt-get install -y awscli
+    
+    echo "Installing AWS CLI..."
+    if ! apt-get install -y awscli; then
+        echo "APT installation of AWS CLI failed, installing AWS CLI v2..."
+        
+        # Install required dependencies
+        apt-get install -y unzip curl
+
+        # Download and install AWS CLI v2
+        cd /tmp
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip -q awscliv2.zip
+        ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+        rm -rf aws awscliv2.zip
+        
+        # Verify installation
+        if ! aws --version; then
+            echo "Error: AWS CLI installation failed"
+            exit 1
+        fi
+        echo "AWS CLI v2 installed successfully"
+    else
+        echo "AWS CLI installed via APT successfully"
+    fi
 }
 
 function setup_pre_azure() {
@@ -26,7 +49,6 @@ function setup_pre_azure() {
 }
 
 function base_setup() {
-
     # Check if this device is a controller
     if is_controller; then
         # copy node definitions and images to the instance
@@ -60,73 +82,113 @@ function base_setup() {
     fi
 
     # copy CML distribution package from cloud storage into our instance, unpack & install
+    echo "Copying CML package from cloud storage..."
     copyfile ${CFG_APP_SOFTWARE} /provision/
-    tar xvf /provision/${CFG_APP_SOFTWARE} --wildcards -C /tmp 'cml2*_amd64.deb' 'patty*_amd64.deb' 'iol-tools*_amd64.deb'
-    systemctl stop ssh
-    apt-get install -y /tmp/*.deb
-    # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
-    /provision/interface_fix.py
-    systemctl restart network-manager
-    netplan apply
-    # Fix for the headless setup (tty remove as the cloud VM has none)
-    sed -i '/^Standard/ s/^/#/' /lib/systemd/system/virl2-initial-setup.service
-    touch /etc/.virl2_unconfigured
-    systemctl stop getty@tty1.service
-    echo "initial setup start: $(date +'%T.%N')"
-    systemctl enable --now virl2-initial-setup.service
-    echo "initial setup done: $(date +'%T.%N')"
+    
+    echo "Extracting CML package..."
+    if [ ! -f "/provision/${CFG_APP_SOFTWARE}" ]; then
+        echo "Error: CML package not found at /provision/${CFG_APP_SOFTWARE}"
+        exit 1
+    fi
 
-    # this should not be needed in cloud!?
-    # systemctl start getty@tty1.service
+    # Create temp directory for package extraction
+    TEMP_DIR=$(mktemp -d)
+    tar xvf "/provision/${CFG_APP_SOFTWARE}" -C "$TEMP_DIR"
+    
+    # Find and install the packages
+    echo "Installing CML packages..."
+    DEB_FILES=$(find "$TEMP_DIR" -name "*.deb")
+    if [ -z "$DEB_FILES" ]; then
+        echo "Error: No .deb files found in the CML package"
+        exit 1
+    fi
 
-    # We need to wait until the initial setup is done
+    # Stop SSH before installation
+    systemctl stop ssh || echo "Warning: Failed to stop SSH"
+
+    # Install each package individually
+    for deb in $DEB_FILES; do
+        echo "Installing $deb..."
+        if ! apt-get install -y "$deb"; then
+            echo "Error: Failed to install $deb"
+            exit 1
+        fi
+    done
+
+    # Clean up temp directory
+    rm -rf "$TEMP_DIR"
+
+    echo "Running interface fix..."
+    if [ -f /provision/interface_fix.py ]; then
+        /provision/interface_fix.py
+    else
+        echo "Warning: interface_fix.py not found"
+    fi
+
+    # Check for NetworkManager
+    if systemctl list-unit-files | grep -q network-manager; then
+        echo "Restarting NetworkManager..."
+        systemctl restart network-manager || echo "Warning: Failed to restart NetworkManager"
+    else
+        echo "NetworkManager not found, setting up..."
+        setup_network_manager
+    fi
+
+    # Check for virl2-initial-setup service
+    if [ -f /lib/systemd/system/virl2-initial-setup.service ]; then
+        echo "Configuring virl2-initial-setup..."
+        sed -i '/^Standard/ s/^/#/' /lib/systemd/system/virl2-initial-setup.service
+        touch /etc/.virl2_unconfigured
+        systemctl stop getty@tty1.service || echo "Warning: Failed to stop getty"
+        echo "initial setup start: $(date +'%T.%N')"
+        systemctl enable --now virl2-initial-setup.service
+        echo "initial setup done: $(date +'%T.%N')"
+    else
+        echo "Error: virl2-initial-setup.service not found. CML installation may have failed."
+        echo "Contents of /provision:"
+        ls -la /provision/
+        echo "Contents of /tmp:"
+        ls -la /tmp/
+        exit 1
+    fi
+
+    # Wait for initial setup
     attempts=5
     while [ $attempts -gt 0 ]; do
         sleep 5
-        # substate=$(systemctl show --property=SubState --value virl2-initial-setup.service)
-        # if [ "$substate" = "exited" ]; then
         if [ ! -f /etc/.virl2_unconfigured ]; then
             echo "initial setup is done"
             break
         fi
-        echo "waiting for initial setup..."
+        echo "waiting for initial setup... ($attempts attempts remaining)"
         ((attempts--))
     done
 
     if [ $attempts -eq 0 ]; then
-        echo "initial setup did not finish in time... something went wrong!"
+        echo "Error: initial setup did not finish in time"
         exit 1
     fi
 
-    # for good measure, apply the network config again
+    # Apply network config and restart SSH
     netplan apply
     systemctl enable --now ssh.service
 
-    # clean up software .pkg / .deb packages
+    # Clean up
     rm -f /provision/*.pkg /provision/*.deb /tmp/*.deb
 
-    # disable bridge setup in the cloud instance (controller and computes)
-    # (this is a no-op with 2.7.1 as it skips bridge creation entirely)
-    /usr/local/bin/virl2-bridge-setup.py --delete
-    sed -i /usr/local/bin/virl2-bridge-setup.py -e '2iexit()'
-    # remove the CML specific netplan config
-    rm /etc/netplan/00-cml2-base.yaml
-    # apply to ensure gateway selection below works
-    netplan apply
-
-    # no PaTTY on computes
-    if ! is_controller; then
-        return 0
+    # Disable bridge setup
+    if [ -f /usr/local/bin/virl2-bridge-setup.py ]; then
+        /usr/local/bin/virl2-bridge-setup.py --delete
+        sed -i /usr/local/bin/virl2-bridge-setup.py -e '2iexit()'
     fi
 
-    # enable and configure PaTTY
-    if [ "${CFG_COMMON_ENABLE_PATTY}" = "true" ]; then
-        sleep 5 # wait for ip address acquisition
-        GWDEV=$(ip -json route | jq -r '.[]|select(.dst=="default")|(.metric|tostring)+"\t"+.dev' | sort | head -1 | cut -f2)
-        echo "OPTS=\"-bridge $GWDEV -poll 5\"" >>/etc/default/patty.env
-        sed -i '/^After/iWants=virl2-patty.service' /lib/systemd/system/virl2.target
-        systemctl daemon-reload
-        systemctl enable --now virl2-patty
+    # Remove CML netplan config
+    rm -f /etc/netplan/00-cml2-base.yaml
+    netplan apply
+
+    # Skip PaTTY on computes
+    if ! is_controller; then
+        return 0
     fi
 }
 
@@ -151,7 +213,7 @@ function cml_configure() {
     chgrp ${CFG_SYS_USER} /provision/vars.sh
     chmod g+r /provision/vars.sh
 
-    # Change the ownership of the del.sh script to the sysadmin user
+    # Change the ownership of the del.sh script to the sys<virl_username> user
     chown ${CFG_SYS_USER}.${CFG_SYS_USER} /provision/del.sh
 
     # Check if this device is a controller
@@ -274,6 +336,68 @@ fi
 if [ ! -f /tmp/PACKER_BUILD ]; then
     cml_configure ${CFG_TARGET}
     postprocess
-    # netplan apply
+    netplan apply
     # systemctl reboot
 fi
+
+# Check for NetworkManager
+function setup_network_manager() {
+    echo "Setting up NetworkManager..."
+    
+    # Install NetworkManager if not present
+    if ! command -v NetworkManager >/dev/null 2>&1; then
+        echo "Installing NetworkManager..."
+        apt-get update && apt-get install -y network-manager
+    fi
+
+    # Check/Create systemd service file
+    NM_SERVICE="/etc/systemd/system/network-manager.service"
+    if [ ! -f "$NM_SERVICE" ]; then
+        echo "Creating NetworkManager service file..."
+        cat > "$NM_SERVICE" <<'EOF'
+[Unit]
+Description=Network Manager
+Documentation=man:NetworkManager(8)
+Wants=network.target
+After=network-pre.target dbus.service
+Before=network.target
+RequiresMountsFor=/var/run/NetworkManager
+
+[Service]
+Type=dbus
+BusName=org.freedesktop.NetworkManager
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/usr/sbin/NetworkManager --no-daemon
+Restart=on-failure
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_DAC_OVERRIDE CAP_NET_RAW CAP_NET_BIND_SERVICE CAP_SETGID CAP_SETUID CAP_SYS_MODULE CAP_AUDIT_WRITE CAP_KILL CAP_SYS_CHROOT
+ProtectSystem=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+Alias=dbus-org.freedesktop.NetworkManager.service
+Also=NetworkManager-dispatcher.service
+EOF
+    fi
+
+    # Reload systemd and start/enable NetworkManager
+    echo "Configuring NetworkManager service..."
+    systemctl daemon-reload
+    systemctl enable network-manager
+    systemctl start network-manager
+
+    # Verify NetworkManager status
+    echo "Checking NetworkManager status..."
+    if ! systemctl is-active --quiet network-manager; then
+        echo "Error: NetworkManager failed to start"
+        systemctl status network-manager
+        exit 1
+    fi
+
+    if ! systemctl is-enabled --quiet network-manager; then
+        echo "Error: NetworkManager not enabled"
+        exit 1
+    fi
+
+    echo "NetworkManager setup completed successfully"
+}

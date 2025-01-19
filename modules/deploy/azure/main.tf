@@ -215,12 +215,12 @@ resource "azurerm_linux_virtual_machine" "cml" {
   # boot_diagnostics {
   # }
 
-  admin_username = "ubuntu"
+  <virl_username>_username = "ubuntu"
   network_interface_ids = [
     azurerm_network_interface.cml.id,
   ]
 
-  admin_ssh_key {
+  <virl_username>_ssh_key {
     username   = "ubuntu"
     public_key = data.azurerm_ssh_public_key.cml.public_key
     # public_key = file("~/.ssh/id_rsa.pub")
