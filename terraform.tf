@@ -7,9 +7,16 @@
 terraform {
   required_providers {
     cml2 = {
-      source  = "CiscoDevNet/cml2"
-      version = ">=0.6.2"
+      source  = "ciscodevnet/cml2"
+      version = "~> 0.8.1"
+    }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
     }
   }
-  required_version = ">= 1.1.0"
 }

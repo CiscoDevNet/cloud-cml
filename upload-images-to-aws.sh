@@ -15,9 +15,9 @@
 # AWS_ACCESS_KEY_ID=ABCD AWS_SECRET_ACCESS_KEY=EF1234 aws ec2 describe-instances
 #
 
-DEFAULT_BUCKET="aws-cml-images"
 
 BUCKETNAME=${1:-$DEFAULT_BUCKET}
+# ISO variable may need to be adjusted to reflect where the image have been extracted to
 ISO=${2:-/var/lib/libvirt/images}
 PKG=${3:-cml2_*.pkg}
 
@@ -110,11 +110,13 @@ if [ $s -eq 255 ]; then
     exit 255
 fi
 
-declare -A nodedefs
+declare -a nodedefs_keys
+declare -a nodedefs_values
 for imagedef in $selection; do
     fullpath=$(find $ISO -name $imagedef)
     defname=$(sed -nE '/^node_definition/s/^.*:(\s+)?(\S+)$/\2/p' $fullpath)
-    nodedefs[$defname]="1"
+    nodedefs_keys+=("$defname")
+    nodedefs_values+=("1")
 done
 
 if [ -n "$cmlpkg" ]; then
@@ -126,7 +128,7 @@ fi
 target="s3://${BUCKETNAME}/refplat"
 
 dialog --progressbox "Upload node definitions to bucket" 20 70 < <(
-    for nodedef in ${!nodedefs[@]}; do
+    for nodedef in "${nodedefs_keys[@]}"; do
         fname=$(grep -l $ISO/node-definitions/* -Ee "^id:(\s+)?${nodedef}$")
         aws s3 cp $fname $target/node-definitions/
         s=$?

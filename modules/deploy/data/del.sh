@@ -6,7 +6,7 @@
 # All rights reserved.
 #
 #
-# NOTE: this only works as long as the admin user password wasn't changed
+# NOTE: this only works as long as the <virl_username> user password wasn't changed
 # from the value which was originally provisioned.
 
 # set -x

@@ -5,7 +5,7 @@
 #
 
 data "cml2_system" "state" {
-  timeout       = "10m"
+  timeout       = "15m"
   ignore_errors = true
 }
 
@@ -13,3 +13,13 @@ data "cml2_system" "state" {
 # during the time the public IP of the AWS instance is known but not really
 # reachable resulting in various "gateway timeouts", "service unavailable" or
 # other, related errors. Especially in cases when going through a proxy.
+
+terraform {
+  required_providers {
+    cml2 = {
+      source                = "ciscodevnet/cml2"
+      version               = "~> 0.8.1"
+      configuration_aliases = [cml2]
+    }
+  }
+}

@@ -571,7 +571,7 @@ Before destroying an instance using `terraform destroy` it is important to remov
 To remove the license using automation, a script is provided in `/provision/del.sh`. The output from the deployment can be used, it looks like this:
 
 ```plain
-ssh -p1122 sysadmin@IP_ADDRESS_OF_CONTROLLER /provision/del.sh
+ssh -p1122 sys<virl_username>@IP_ADDRESS_OF_CONTROLLER /provision/del.sh
 ```
 
 This requires all labs to be stopped (no running VMs allowed) prior to removing the license. It will only work as long as the provisioned usernames and passwords have not changed between deployment and destruction of the instance.
@@ -664,7 +664,7 @@ Outputs:
 
 cml2info = {
   "address" = "18.194.38.215"
-  "del" = "ssh -p1122 sysadmin@18.194.38.215 /provision/del.sh"
+  "del" = "ssh -p1122 sys<virl_username>@18.194.38.215 /provision/del.sh"
   "url" = "https://18.194.38.215"
   "version" = "2.5.1+build.10"
 }
@@ -675,7 +675,7 @@ $
 As can be seen above, a public IPv4 address has been assigned to the instance which can be used to access it via SSH and the provided SSH key pair (if this does not connect right away then the system isn't ready, yet and more wait is needed):
 
 ```plain
-$ ssh -p1122 sysadmin@18.194.38.215
+$ ssh -p1122 sys<virl_username>@18.194.38.215
 The authenticity of host '[18.194.38.215]:1122 ([18.194.38.215]:1122)' can't be established.
 ED25519 key fingerprint is SHA256:dz7GcRGzcWiyHbPb++NyQykP9r7UoG0rNiACi5ft1lQ.
 This key is not known by any other names
@@ -683,13 +683,13 @@ Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
 Warning: Permanently added '[18.194.38.215]:1122' (ED25519) to the list of known hosts.
 Welcome to Ubuntu 20.04.6 LTS (GNU/Linux 5.15.0-1033-aws x86_64)
 [...]
-sysadmin@rschmied-aws-2023042001:~$ 
+sys<virl_username>@rschmied-aws-2023042001:~$ 
 ```
 
 At this point, the status of the system can be checked:
 
 ```plain
-sysadmin@rschmied-aws-2023042001:~$ systemctl status | head
+sys<virl_username>@rschmied-aws-2023042001:~$ systemctl status | head
 ● rschmied-aws-2023042001
     State: running
      Jobs: 0 queued
@@ -700,13 +700,13 @@ sysadmin@rschmied-aws-2023042001:~$ systemctl status | head
            ├─user.slice 
            │ └─user-1001.slice 
            │   ├─user@1001.service 
-sysadmin@rschmied-aws-2023042001:~$ systemctl status virl2.target
+sys<virl_username>@rschmied-aws-2023042001:~$ systemctl status virl2.target
 ● virl2.target - CML2 Network Simulation System
      Loaded: loaded (/lib/systemd/system/virl2.target; enabled; vendor preset: enabled)
      Active: active since Fri 2024-04-21 14:47:58 UTC; 2min 13s ago
 
 Warning: some journal files were not opened due to insufficient permissions.
-sysadmin@rschmied-aws-2023042001:~$ 
+sys<virl_username>@rschmied-aws-2023042001:~$ 
 ```
 
 The system is running and the VIRL2 target (CML) is active!
@@ -717,7 +717,7 @@ Prior to stopping the instance, the licensing token must be removed via the UI. 
 > The `del.sh` has no output if the command is successful.
 
 ```plain
-$ ssh -p1122 sysadmin@18.194.38.215 /provision/del.sh
+$ ssh -p1122 sys<virl_username>@18.194.38.215 /provision/del.sh
 The authenticity of host '[18.194.38.215]:1122 ([18.194.38.215]:1122)' can't be established.
 ED25519 key fingerprint is SHA256:4QxgLv9zzKR5gJP4rWE41STdnAHufBYkTKBpp/VA+k8.
 This key is not known by any other names
@@ -748,7 +748,7 @@ Plan: 0 to add, 0 to change, 3 to destroy.
 Changes to Outputs:
   - cml2info = {
       - address = "18.194.38.215"
-      - del     = "ssh -p1122 sysadmin@18.194.38.215 /provision/del.sh"
+      - del     = "ssh -p1122 sys<virl_username>@18.194.38.215 /provision/del.sh"
       - url     = "https://18.194.38.215"
       - version = "2.5.1+build.10"
     } -> null

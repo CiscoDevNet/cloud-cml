@@ -3,64 +3,70 @@
 # Copyright (c) 2019-2024, Cisco Systems, Inc.
 # All rights reserved.
 #
+# This is a template configuration file. Before using:
+# 1. Run prepare.sh (or prepare.bat on Windows) to set up your environment
+# 2. Uncomment and customize the settings below based on your needs
+# 3. Never commit sensitive information like passwords or API keys
+#
 
 # at this time, "aws" and "azure" are defined targets
 # make sure that you ran the prepare.sh / prepare.bat script!
-target: aws
+# target: aws
 
 aws:
-  region: us-east-1
-  availability_zone: us-east-1a
-  bucket: bucket-name-goes-here
-  # flavor: c5.2xlarge
-  flavor: m5zn.metal
-  flavor_compute: m5zn.metal
-  profile: permission-profile-goes-here
+  # region: # Will be set by prepare.sh based on user input
+  # availability_zone: # Will be set by prepare.sh based on region
+  # bucket: # Will be set by prepare.sh to <prefix>-aws-cml
+  # flavor: c5.metal
+  # flavor_compute: c5.metal
+  # profile: s3-access-for-ec2
   #
   # The following two attributes are used in the aws-mini variant. They specify
   # the subnet and the security group ID the CML VM should use. The are NOT
   # used when using the regular AWS deployment option (non-mini).
-  subnet_id: ""
-  sg_id: ""
+  # subnet_id: ""
+  # sg_id: ""
   #
   # The followin values are used by the regular AWS deployment option.
   # When specifying a VPC ID below then this prefix must exist on that VPC!
-  public_vpc_ipv4_cidr: 10.0.0.0/16
-  enable_ebs_encryption: false
+  # public_vpc_ipv4_cidr: 10.0.0.0/16
+  # enable_ebs_encryption: false
   #
   # Leave empty to create a custom VPC / Internet gateway, or provide the IDs
   # of the VPC / gateway to use, they must exist and properly associated.
   # also: an IPv6 CIDR prefix must be associated with the specified VPC
-  vpc_id: ""
-  gw_id: ""
+  # vpc_id: ""
+  # gw_id: ""
   #
   # Use spot instances, when available for the VMs forming the cluster
   spot_instances:
-    use_spot_for_controller: false
-    use_spot_for_computes: false
+    # use_spot_for_controller: false
+    # use_spot_for_computes: false
 
 azure:
-  resource_group: resource-group-name
-  size: Standard_D4d_v4
-  size_compute: unused_at_the_moment
-  storage_account: storage-account-name
-  container_name: container-name
+  # resource_group: resource-group-name
+  # size: Standard_D4d_v4
+  # size_compute: unused_at_the_moment
+  # storage_account: storage-account-name
+  # container_name: container-name
 
 common:
-  disk_size: 64
-  controller_hostname: cml-controller
-  key_name: ssh-key-name
-  allowed_ipv4_subnets: ["0.0.0.0/0"]
-  enable_patty: true
+  # disk_size: 64
+  # controller_hostname: cml-controller
+  # key_name: # Will be set by prepare.sh to cml-<region>-<prefix>
+  # List of allowed IPv4 subnets for inbound traffic
+  # allowed_ipv4_subnets:
+  #   - "10.0.0.0/8"
+  # enable_patty: true
 
 cluster:
-  enable_cluster: false
+  # enable_cluster: false
   # No longer used, see the secret manager section below
-  #secret: your-secret-password
-  allow_vms_on_controller: true
-  number_of_compute_nodes: 0
-  compute_hostname_prefix: cml-compute
-  compute_disk_size: 32
+  # secret: your-secret-password
+  # allow_vms_on_controller: true
+  # number_of_compute_nodes: 0
+  # compute_hostname_prefix: cml-compute
+  # compute_disk_size: 32
 
 secret:
   # At this time, 'vault', 'conjur' and 'dummy' are supported secrets managers.
@@ -70,7 +76,7 @@ secret:
   # https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password
   #manager: vault
   #manager: conjur
-  manager: dummy
+  # manager: dummy
 
   conjur:
 
@@ -88,29 +94,29 @@ secret:
   # SmartLicense token is accessed using 'secrets.smartlicense_token.secret'.
   secrets:
     app:
-      username: admin
+      username: <virl_username>
       # Used with dummy secret manager.  If unspecified, a random password will
       # be generated. You need to escape special chars:
       #raw_secret: '\"!@$%'
-      #raw_secret: your-secret-password
+      raw_secret: <<virl_username>_password>
       # Path to secret, used with both Vault and Conjur:
-      #path: example-org/example-project/admin_password
+      #path: example-org/example-project/<virl_username>_password
       # Used with Vault only:
       #field: secret
 
     sys:
-      username: sysadmin
+      # username: sys<virl_username>
       # Used with dummy secret manager.  If unspecified, a random password will
       # be generated.
-      #raw_secret: your-secret-password
+      # raw_secret: <<virl_username>_password>
       # Path to secret, used with both Vault and Conjur:
-      #path: example-org/example-project/sysadmin_password
+      #path: example-org/example-project/sys<virl_username>_password
       # Used with Vault only:
       #field: secret
 
     smartlicense_token:
       # Only used with dummy secret manager
-      raw_secret: your-smart-licensing-token
+      # raw_secret:
       # Path to secret, used with both Vault and Conjur:
       #path: example-org/example-project/smartlicense_token
       # Used with Vault only:
@@ -127,17 +133,17 @@ secret:
 
 app:
   # **No longer used, see the secret manager section above**
-  #user: admin
+  #user: <virl_username>
   #pass: your-secret-password
-  software: cml2_2.7.2-26_amd64-29.pkg
+  # software: cml2_2.8.0-6_amd64-32.pkg
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
   customize:
     # - 00-patch_vmx.sh
-    - 99-dummy.sh
+    # - 99-dummy.sh
 
 license:
-  flavor: CML_Enterprise
+  flavor: CML_Personal
   # **No longer used, see the secret manager section above**
   #token: your-smart-licensing-token
   # Unless you have additional node licenses available, leave this at zero
@@ -151,47 +157,47 @@ license:
 refplat:
   definitions:
     - alpine
-    # - alpine-trex
-    # - alpine-wanem
-    # - asav
-    # - cat8000v
-    # - cat9000v-q200
-    # - cat9000v-uadp
-    # - cat-sdwan-edge
-    # - cat-sdwan-controller
-    # - cat-sdwan-manager
-    # - cat-sdwan-validator
-    # - cat-sdwan-vedge
-    # - csr1000v
-    # - desktop
+    - alpine-trex
+    - alpine-wanem
+    - asav
+    - cat8000v
+    - cat9000v-q200
+    - cat9000v-uadp
+    - cat-sdwan-edge
+    - cat-sdwan-controller
+    - cat-sdwan-manager
+    - cat-sdwan-validator
+    - cat-sdwan-vedge
+    - csr1000v
+    - desktop
     - iol-xe
     - ioll2-xe
     - iosv
     - iosvl2
-    # - iosxrv9000
-    # - nxosv9000
+    - iosxrv9000
+    - nxosv9000
     - server
     - ubuntu
   images:
     - alpine-3-19-1-base
-    # - alpine-3-19-1-trex
-    # - alpine-3-19-1-wanem
-    # - asav-9-20-2
-    # - cat8000v-17-13-01a
-    # - cat9000v-q200-17-12-01prd9
-    # - cat9000v-uadp-17-12-01prd9
-    # - cat-sdwan-edge-17-13-01a
-    # - cat-sdwan-controller-20-13-1
-    # - cat-sdwan-manager-20-13-1
-    # - cat-sdwan-validator-20-13-1
-    # - cat-sdwan-vedge-20-13-1
-    # - csr1000v-17-03-068a
-    # - desktop-3-19-1-xfce
+    - alpine-3-19-1-trex
+    - alpine-3-19-1-wanem
+    - asav-9-20-2
+    - cat8000v-17-13-01a
+    - cat9000v-q200-17-12-01prd9
+    - cat9000v-uadp-17-12-01prd9
+    - cat-sdwan-edge-17-13-01a
+    - cat-sdwan-controller-20-13-1
+    - cat-sdwan-manager-20-13-1
+    - cat-sdwan-validator-20-13-1
+    - cat-sdwan-vedge-20-13-1
+    - csr1000v-17-03-068a
+    - desktop-3-19-1-xfce
     - iol-xe-17-12-01
     - ioll2-xe-17-12-01
     - iosv-159-3-m8
     - iosvl2-2020
-    # - iosxrv9000-7-11-1
-    # - nxosv9300-10-4-2-f
+    - iosxrv9000-7-11-1
+    - nxosv9300-10-4-2-f
     - server-tcl-14-1
     - ubuntu-22-04-20240126

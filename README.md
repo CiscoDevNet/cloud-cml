@@ -6,6 +6,12 @@ With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML de
 
 *It is very likely that this tool chain can not be used "as-is"*.  It should be forked and adapted to specific customer requirements and environments.
 
+> [!NOTE]
+>
+> Please ensure that `prepare.sh` is run first as this sets key variable names
+
+
+
 > [!IMPORTANT]
 >
 > **Version 2.7 vs 2.8**
@@ -23,6 +29,34 @@ With CML 2.7, you can run CML instances on Azure and AWS.  We have tested CML de
 
 > [!IMPORTANT]
 > Read the section below about [cloud provider selection](#important-cloud-provider-selection) (prepare script).
+
+## CML Utilities
+
+This project includes scripts that integrate with [cmlutils](https://pypi.org/project/cmlutils/), a command-line tool for managing CML labs. To use cmlutils:
+
+1. Install the package:
+```bash
+pip install cmlutils
+```
+
+2. Generate the .virlrc configuration:
+```bash
+python scripts/generate_virlrc.py
+```
+
+3. Source the configuration:
+```bash
+source .virlrc
+```
+
+4. You can now use cmlutils commands:
+```bash
+# List labs
+cml ls
+
+# Stop all labs
+cml down --all
+```
 
 ## General requirements
 
@@ -48,17 +82,89 @@ Some of the steps and procedures outlined below are preparation steps and only n
 - creating the storage resources and uploading images and software into it
 - creation of an SSH key pair and making the public key available to the cloud service
 - editing the `config.yml` configuration file including the selection of the cloud service, an instance flavor, region, license token and other parameters
+- optionally setting up S3 backend for state management
 
 #### Important: Cloud provider selection
 
 The tooling supports multiple cloud providers (currently AWS and Azure).  Not everyone wants both providers.  The **default configuration is set to use AWS only**.  If Azure should be used either instead or in addition then the following steps are mandatory:
 
 1. Run the `prepare.sh` script to modify and prepare the tool chain.  If on Windows, use `prepare.bat`.  You can actually choose to use both, if that's what you want.
+    - The script will ask for a prefix for AWS resources (or generate a random one)
+    - If AWS is enabled, you'll be offered to set up S3 backend for state management
+    - The script will create necessary configurations and backups
 2. Configure the proper target ("aws" or "azure") in the configuration file
 
 The first step is unfortunately required, since it is impossible to dynamically select different cloud configurations within the same Terraform HCL configuration.  See [this SO link](https://stackoverflow.com/questions/70428374/how-to-make-the-provider-configuration-optional-and-based-on-the-condition-in-te) for more some context and details.
 
 The default "out-of-the-box" configuration is AWS, so if you want to run on Azure, don't forget to run the prepare script.
+
+#### State Management
+
+The tool now supports using S3 as a backend for Terraform state management. When running `prepare.sh`:
+
+1. You'll be asked if you want to use S3 for state management
+2. If yes, the script will:
+    - Check for an existing state bucket
+    - Create the bucket and DynamoDB table if they don't exist
+    - Configure Terraform to use the S3 backend
+    - Migrate any existing state
+
+Benefits of using S3 backend:
+- State locking via DynamoDB
+- Encrypted state storage
+- State versioning
+- Team collaboration support
+
+#### Known Issues
+
+When using bare metal instances (e.g., `c5.metal`), you might encounter timeout errors during deployment:
+
+```
+│ Error: CML2 Provider Error
+│
+│   with module.ready.data.cml2_system.state,
+│   on modules/readyness/main.tf line 7, in data "cml2_system" "state":
+│    7: data "cml2_system" "state" {
+│
+│ ran into timeout (max 15m)
+```
+
+This is expected as metal instances take longer to start/stop. The provider has been configured with extended timeouts (30 minutes), but you may still see this error. The deployment will continue to work despite this error.
+
+#### Resource Naming and Prefixes
+
+The `prepare.sh` script handles all resource naming and prefixes:
+
+1. You'll be prompted to enter a prefix or use a randomly generated one
+2. This prefix will be used for all AWS resources (buckets, instances, etc.)
+3. The script automatically updates all relevant files with the new prefix
+4. No personal identifiers need to be stored in the repository
+
+Example resources that use the prefix:
+- S3 bucket: `<prefix>-aws-cml`
+- State bucket: `<prefix>-aws-cml-tfstate`
+- Instance names: `cml-dublin-<prefix>`
+
+The following fields in config.yml will be automatically updated:
+```yaml
+aws:
+  region: # Set based on user input
+  availability_zone: # Set based on region
+  bucket: # Set to <prefix>-aws-cml
+common:
+  key_name: # Set to cml-<region>-<prefix>
+```
+
+The prepare script will:
+1. Ask for your preferred AWS region
+2. Map the region to a city name based on location:
+   - EMEA: dublin (eu-west-1), london (eu-west-2), paris (eu-west-3), etc.
+   - US: virginia (us-east-1), ohio (us-east-2), california (us-west-1), etc.
+   - APAC: singapore (ap-southeast-1), sydney (ap-southeast-2), tokyo (ap-northeast-1), etc.
+3. Configure all region-specific settings automatically
+4. Use the region city in resource naming
+
+You can leave these fields empty in the repository as they will be populated by the prepare script.
 
 #### Managing secrets
 
@@ -83,9 +189,9 @@ secret:
   manager: conjur
   secrets:
     app:
-      username: admin
+      username: <virl_username>
       # Example using Conjur
-      path: example-org/example-project/secret/admin_password
+      path: example-org/example-project/secret/<virl_username>_password
 ```
 
 Refer to the `.envrc.example` file for examples to set up environment variables to use an external secrets manager.
@@ -99,7 +205,7 @@ secret:
   manager: dummy
   secrets:
     app:
-      username: admin
+      username: <virl_username>
       # raw_secret: # Undefined
 ```
 
@@ -110,7 +216,7 @@ secret:
 The included default `config.yml` configures generated passwords for the following secrets:
 
 - App password (for the UI)
-- System password for the OS system administration user
+- System password for the OS system <virl_username>istration user
 - Cluster secret when clustering is enabled
 
 Regardless of the secret manager in use or whether you use random passwords or not:  You **must** provide a valid Smart Licensing token for the sytem to work, though.
@@ -164,6 +270,81 @@ $
 It is assumed that the CML cloud repository was cloned to the computer where Terraform was installed. The following command are all executed within the directory that has the cloned repositories. In particular, this `README.md`, the `main.tf` and the `config.yml` files, amongst other files.
 
 When installed, run `terraform init` to initialize Terraform. This will download the required providers and create the state files.
+
+## Using sshuttle for VPN-like Access
+
+To access your CML instance and its internal networks, you can use sshuttle as a lightweight VPN alternative. This allows you to reach the CML web interface and any nodes in your labs directly from your local machine.
+
+### Installation
+
+```bash
+# On Ubuntu/Debian
+sudo apt-get install sshuttle
+
+# On macOS using Homebrew
+brew install sshuttle
+
+# Using pip (all platforms)
+pip install sshuttle
+```
+
+### Basic Usage
+
+To create a VPN-like connection to your CML instance:
+
+```bash
+# Replace 10.0.0.0/16 with your CML instance's internal network range
+sshuttle --dns -r admin@your-cml-instance 10.0.0.0/16
+```
+
+### macOS Configuration
+
+On macOS, you'll need additional configuration due to the platform's security features:
+
+1. Copy the provided packet filter configuration:
+   ```bash
+   sudo cp extras/pf.sshuttle.conf /etc/pf.anchors/
+   ```
+
+2. Add the following line to `/etc/pf.conf` if it doesn't exist:
+   ```
+   rdr-anchor "sshuttle"
+   ```
+
+3. Load the configuration:
+   ```bash
+   sudo pfctl -f /etc/pf.conf
+   ```
+
+The `pf.sshuttle.conf` file is required on macOS because:
+- macOS uses the Packet Filter (PF) firewall
+- sshuttle needs specific firewall rules to forward traffic
+- The configuration allows:
+  - Traffic to the SSH tunnel port (2222)
+  - Forwarded traffic to/from your CML networks
+  - Proper NAT for return traffic
+
+### Usage Tips
+
+1. Run sshuttle in the background:
+   ```bash
+   sshuttle --dns -D -r admin@your-cml-instance 10.0.0.0/16
+   ```
+
+2. To stop the background process:
+   ```bash
+   pkill sshuttle
+   ```
+
+3. For AWS deployments, use the bastion host:
+   ```bash
+   sshuttle --dns -r admin@your-bastion-host 10.0.0.0/16
+   ```
+
+Once connected, you can:
+- Access the CML web interface using its private IP
+- Connect directly to nodes in your labs
+- Use DNS resolution for lab hostnames
 
 ## Cloud specific instructions
 
@@ -226,4 +407,17 @@ All scripts are copied as they are including all comments which will require eve
 
 A potential solution to the data limit is to provide the scripts in storage by bundling them up into a tar file or similar, store the tar file in S3 and then only reference this file in the user-data.  However, this hasn't been implemented, yet.
 
-EOF
+## Development
+
+### Git Hooks
+
+This repository uses git hooks to maintain code quality:
+
+- `pre-commit`: Automatically sanitizes configuration files to remove sensitive data
+- `pre-push`: Prevents pushing sensitive files to public repositories
+
+To enable the hooks:
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/*
+```

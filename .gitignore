@@ -1,6 +1,69 @@
+# macOS system files
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
 .envrc
-.terraform
+.env
+.env.*
+!.envrc.example
+
+# Terraform files
+.terraform/
 .terraform.lock.hcl
-terraform.tfstate*
+terraform.tfstate
+terraform.tfstate.*
 .terraform.tfstate.lock.info
+*.tfvars
+!example.tfvars
+
+# Python files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Node modules (for documentation)
+node_modules/
+
+# Backup files
+*.bak
+*.backup
+*~
+backups_*/
+
+# CML specific
+.virlrc
+# config.yml is tracked as it serves as a template
+*.pkg
+*.qcow2
+*.img
+
+# Logs
+*.log
+logs/
