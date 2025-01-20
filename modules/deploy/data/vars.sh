@@ -1,3 +1,8 @@
+#
+# This file is part of Cisco Modeling Labs
+# Copyright (c) 2019-2025, Cisco Systems, Inc.
+# All rights reserved.
+#
 CFG_APP_SOFTWARE="${cfg.app.software}"
 CFG_APP_PASS="${cfg.secrets.app.secret}"
 CFG_APP_USER="${cfg.secrets.app.username}"

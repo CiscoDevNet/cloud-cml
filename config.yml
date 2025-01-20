@@ -1,6 +1,6 @@
 #
 # This file is part of Cisco Modeling Labs
-# Copyright (c) 2019-2024, Cisco Systems, Inc.
+# Copyright (c) 2019-2025, Cisco Systems, Inc.
 # All rights reserved.
 #
 
@@ -129,7 +129,7 @@ app:
   # **No longer used, see the secret manager section above**
   #user: admin
   #pass: your-secret-password
-  software: cml2_2.7.2-26_amd64-29.pkg
+  software: cml2_2.8.0-6_amd64-32.pkg
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
   customize:
@@ -148,50 +148,49 @@ license:
 # be available prior to starting an instance. Ensure that each definition has
 # also a corresponding image! A smaller selection: less copying, faster bring-up
 # time!
+#
+# NOTE: the list below should be adapted to your needs and also to the exact
+# names of the files which have been copied to your cloud storage.  Ensure
+# that those files are there!
 refplat:
   definitions:
     - alpine
-    # - alpine-trex
-    # - alpine-wanem
-    # - asav
-    # - cat8000v
-    # - cat9000v-q200
-    # - cat9000v-uadp
-    # - cat-sdwan-edge
-    # - cat-sdwan-controller
-    # - cat-sdwan-manager
-    # - cat-sdwan-validator
-    # - cat-sdwan-vedge
-    # - csr1000v
-    # - desktop
+    - alpine-trex
+    - alpine-wanem
+    - asav
+    - cat8000v
+    - cat9000v-q200
+    - cat9000v-uadp
+    - cat-sdwan-edge
+    - cat-sdwan-controller
+    - cat-sdwan-manager
+    - cat-sdwan-validator
+    - cat-sdwan-vedge
+    - csr1000v
+    - desktop
     - iol-xe
     - ioll2-xe
     - iosv
     - iosvl2
-    # - iosxrv9000
-    # - nxosv9000
+    - iosxrv9000
+    - nxosv9000
     - server
     - ubuntu
   images:
-    - alpine-3-19-1-base
-    # - alpine-3-19-1-trex
-    # - alpine-3-19-1-wanem
-    # - asav-9-20-2
-    # - cat8000v-17-13-01a
-    # - cat9000v-q200-17-12-01prd9
-    # - cat9000v-uadp-17-12-01prd9
-    # - cat-sdwan-edge-17-13-01a
-    # - cat-sdwan-controller-20-13-1
-    # - cat-sdwan-manager-20-13-1
-    # - cat-sdwan-validator-20-13-1
-    # - cat-sdwan-vedge-20-13-1
-    # - csr1000v-17-03-068a
-    # - desktop-3-19-1-xfce
-    - iol-xe-17-12-01
-    - ioll2-xe-17-12-01
-    - iosv-159-3-m8
+    - alpine-base-3-20-3
+    - alpine-desktop-3-20-3
+    # - alpine-trex-3-20-3
+    # - alpine-wanem-3-20-3
+    # - asav-9-22-1-1
+    # - cat8000v-17-15-01a
+    # - cat9000v-q200-17-15-01
+    # - cat9000v-uadp-17-15-01
+    # - csr1000v-17-03-08a
+    - iol-xe-17-15-01
+    - ioll2-xe-17-15-01
+    - iosv-159-3-m9
     - iosvl2-2020
-    # - iosxrv9000-7-11-1
-    # - nxosv9300-10-4-2-f
-    - server-tcl-14-1
-    - ubuntu-22-04-20240126
+    # - iosxrv9000-24-3-1
+    # - nxosv9300-10-5-1-f
+    - server-tcl-15-0
+    - ubuntu-24-04-20241004

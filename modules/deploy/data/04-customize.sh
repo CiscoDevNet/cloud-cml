@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# This file is part of Cisco Modeling Labs
+# Copyright (c) 2019-2025, Cisco Systems, Inc.
+# All rights reserved.
+#
 
 source /provision/common.sh
 source /provision/copyfile.sh
@@ -66,7 +71,6 @@ for id in range(0, USER_COUNT + 1):
     client.user_management.create_user(f"pod{id}", f"{id:#02}DevWks{id:#02}", resource_pool=rp.id)
 EOF
 
-sleep 15  # wait for licensing to happen
 export CFG_APP_PASS CFG_COMMON_HOSTNAME
 export HOME=/var/local/virl2
 python3 /provision/users.py
