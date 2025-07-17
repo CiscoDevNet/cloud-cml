@@ -50,7 +50,8 @@ common:
   disk_size: 64
   controller_hostname: cml-controller
   key_name: ssh-key-name
-  allowed_ipv4_subnets: ["0.0.0.0/0"]
+  allowed_ipv4_subnets_mgmt: ["0.0.0.0/0"]
+  allowed_ipv4_subnets_cml2: ["0.0.0.0/0"]
   enable_patty: true
 
 cluster:
@@ -129,11 +130,13 @@ app:
   # **No longer used, see the secret manager section above**
   #user: admin
   #pass: your-secret-password
-  software: cml2_2.8.0-6_amd64-32.pkg
+  software: cml2_2.9.0-3_amd64-3.pkg
   # The list must have at least ONE element, this is what the dummy is for in
   # case 00- and 01- are commented out!
   customize:
     # - 00-patch_vmx.sh
+    # - 03-letsencrypt.sh
+    # - 04-customize.sh
     - 99-dummy.sh
 
 license:
@@ -161,11 +164,7 @@ refplat:
     - cat8000v
     - cat9000v-q200
     - cat9000v-uadp
-    - cat-sdwan-edge
-    - cat-sdwan-controller
-    - cat-sdwan-manager
-    - cat-sdwan-validator
-    - cat-sdwan-vedge
+    - chrome
     - csr1000v
     - desktop
     - iol-xe
@@ -173,24 +172,41 @@ refplat:
     - iosv
     - iosvl2
     - iosxrv9000
+    - net-tools
+    - nginx
     - nxosv9000
+    - radius
     - server
+    - syslog
+    - tacplus
+    - thousandeyes-ea
     - ubuntu
   images:
-    - alpine-base-3-20-3
-    - alpine-desktop-3-20-3
-    # - alpine-trex-3-20-3
-    # - alpine-wanem-3-20-3
-    # - asav-9-22-1-1
-    # - cat8000v-17-15-01a
-    # - cat9000v-q200-17-15-01
-    # - cat9000v-uadp-17-15-01
-    # - csr1000v-17-03-08a
-    - iol-xe-17-15-01
-    - ioll2-xe-17-15-01
-    - iosv-159-3-m9
+    - alpine-base-3-21-3
+    - alpine-desktop-3-21-3
+    - alpine-trex-3-21-3
+    - alpine-wanem-3-21-3
+    - asav-9-23-1
+    - cat8000v-17-16-01a
+    # - cat9000v-q200-17-15-03
+    # - cat9000v-uadp-17-15-03
+    - chrome-136-0-7103-113-1
+    - csr1000v-17-03-08a
+    - dnsmasq-2-9-0
+    - firefox-138-0-4-build1
+    - frr-10-2-1-r1
+    - ioll2-xe-17-16-01a
+    - iol-xe-17-16-01a
+    - iol-xe-17-16-01a-serial-4eth
+    - iosv-159-3-m10
     - iosvl2-2020
-    # - iosxrv9000-24-3-1
-    # - nxosv9300-10-5-1-f
-    - server-tcl-15-0
-    - ubuntu-24-04-20241004
+    # - iosxrv9000-25-1-1
+    - net-tools-1-0-0
+    - nginx-3-38
+    # - nxosv9300-10-5-3-f
+    - radius-3-2-1
+    - server-tcl-16-0
+    - syslog-3-38
+    - tacplus-f4-0-4-28
+    - thousandeyes-ea-1-210-0
+    - ubuntu-24-04-20250503

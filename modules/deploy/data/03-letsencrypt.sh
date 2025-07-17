@@ -78,10 +78,14 @@ mv /etc/nginx/*.pem /etc/nginx/oldcerts/
 cp /etc/letsencrypt/live/$CFG_HN/fullchain.pem /etc/nginx/pubkey.pem
 cp /etc/letsencrypt/live/$CFG_HN/privkey.pem /etc/nginx/privkey.pem
 
-# write the cert into the file that Cockpit uses, note that Cockpit wants
-# the cert only, not the full chain.
-cat /etc/letsencrypt/live/$CFG_HN/privkey.pem >/etc/cockpit/ws-certs.d/0-self-signed.key
-sed '/-----END CERTIFICATE-----/q' $ /etc/letsencrypt/live/$CFG_HN/fullchain.pem >/etc/cockpit/ws-certs.d/0-self-signed.cert
+# Cockpit loads certificates from the /etc/cockpit/ws-certs.d directory. It
+# will use the last file in the directory with a .cert or .crt extension in
+# alphabetical order. The private key can be contained in a separate file with
+# the same name as the certificate, but with a .key suffix instead. The key
+# must not be encrypted.
+rm /etc/cockpit/ws-certs.d/*
+cp /etc/letsencrypt/live/$CFG_HN/fullchain.pem /etc/cockpit/ws-certs.d/$CFG_HN.crt
+cp /etc/letsencrypt/live/$CFG_HN/privkey.pem /etc/cockpit/ws-certs.d/$CFG_HN.key
 
 # reload affected services
 systemctl reload nginx
