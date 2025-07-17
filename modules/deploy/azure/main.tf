@@ -105,8 +105,22 @@ resource "azurerm_network_security_rule" "cml_std" {
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_ranges     = [22, 80, 443, 1122, 9090]
-  source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets
+  destination_port_ranges     = [80, 443, 1122]
+  source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets_cml2
+  destination_address_prefix  = "*"
+  resource_group_name         = data.azurerm_resource_group.cml.name
+  network_security_group_name = azurerm_network_security_group.cml.name
+}
+
+resource "azurerm_network_security_rule" "cml_admin" {
+  name                        = "cml-admin-in"
+  priority                    = 150
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_ranges     = [22, 9090]
+  source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets_mgmt
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name
   network_security_group_name = azurerm_network_security_group.cml.name
@@ -121,7 +135,7 @@ resource "azurerm_network_security_rule" "cml_patty_tcp" {
   protocol                    = "Tcp"
   source_port_range           = "*"
   destination_port_range      = "2000-7999"
-  source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets
+  source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets_cml2
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name
   network_security_group_name = azurerm_network_security_group.cml.name
@@ -136,7 +150,7 @@ resource "azurerm_network_security_rule" "cml_patty_udp" {
   protocol                    = "Udp"
   source_port_range           = "*"
   destination_port_range      = "2000-7999"
-  source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets
+  source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets_cml2
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name
   network_security_group_name = azurerm_network_security_group.cml.name

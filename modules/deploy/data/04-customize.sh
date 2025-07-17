@@ -18,8 +18,8 @@ fi
 copyfile cml2tf-0.2.1-py3-none-any.whl /var/lib/nginx/html/client/
 
 # stabilization timer
-constants="/var/local/virl2/.local/lib/python3.8/site-packages/simple_drivers/constants.py"
-sed -i -e'/^STABILIZATION_TIME = 3$/s/3/1/' $constants
+constants="/var/local/virl2/.local/lib/python3.12/site-packages/simple_drivers/constants.py"
+sed -i -e'/^STABILIZATION_TIME = 3$/s/3/0.1/' $constants
 
 # script to create users and resource limits
 cat >/provision/users.py <<EOF

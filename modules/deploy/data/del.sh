@@ -16,15 +16,15 @@ source /provision/vars.sh
 function cml_remove_license() {
     API="http://ip6-localhost:8001/api/v0"
 
-    # re-auth with new password
-    TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' \  |
-        curl -s -d@- $API/authenticate | jq -r)
+    # auth with password
+    TOKEN=$(echo '{"username":"'${CFG_APP_USER}'","password":"'${CFG_APP_PASS}'"}' |
+        curl -s -H "Content-Type: application/json" -d@- $API/authenticate | jq -r)
 
     # de-register the license from the controller
     curl -s -X "DELETE" \
         "$API/licensing/deregistration" \
         -H "Authorization: Bearer $TOKEN" \
-        -H "accept: application/json" \
+        -H "Accept: application/json" \
         -H "Content-Type: application/json"
 }
 
