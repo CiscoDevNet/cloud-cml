@@ -225,7 +225,7 @@ function postprocess() {
             for patch in $FILELIST; do
                 echo "processing $patch ..."
                 (
-                    source "$patch" || true
+                    bash "$patch" || true
                 ) 2>&1 | tee "/var/log/${patch}.log"
                 echo "done with ${patch}"
             done
