@@ -127,14 +127,17 @@ resource "azurerm_network_security_rule" "cml_admin" {
 }
 
 resource "azurerm_network_security_rule" "cml_patty_tcp" {
-  count                       = var.options.cfg.common.enable_patty ? 1 : 0
-  name                        = "patty-tcp-in"
-  priority                    = 200
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Tcp"
-  source_port_range           = "*"
-  destination_port_range      = "2000-7999"
+  count             = var.options.cfg.common.enable_patty ? 1 : 0
+  name              = "patty-tcp-in"
+  priority          = 200
+  direction         = "Inbound"
+  access            = "Allow"
+  protocol          = "Tcp"
+  source_port_range = "*"
+  # destination_port_range      = "2000-7999"
+  # Policy disallows 3389, 5500, 5800 and 5900 :(
+  # destination_port_ranges     = ["2000-3388", "3340-5499", "5501-5799", "5801-5899", "5901-7999"]
+  destination_port_range      = "2000-2999"
   source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets_cml2
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name
@@ -142,14 +145,17 @@ resource "azurerm_network_security_rule" "cml_patty_tcp" {
 }
 
 resource "azurerm_network_security_rule" "cml_patty_udp" {
-  count                       = var.options.cfg.common.enable_patty ? 1 : 0
-  name                        = "patty-udp-in"
-  priority                    = 300
-  direction                   = "Inbound"
-  access                      = "Allow"
-  protocol                    = "Udp"
-  source_port_range           = "*"
-  destination_port_range      = "2000-7999"
+  count             = var.options.cfg.common.enable_patty ? 1 : 0
+  name              = "patty-udp-in"
+  priority          = 300
+  direction         = "Inbound"
+  access            = "Allow"
+  protocol          = "Udp"
+  source_port_range = "*"
+  # destination_port_range      = "2000-7999"
+  # Policy disallows 3389, 5500, 5800 and 5900 :(
+  # destination_port_ranges     = ["2000-3388", "3340-5499", "5501-5799", "5801-5899", "5901-7999"]
+  destination_port_range      = "2000-2999"
   source_address_prefixes     = var.options.cfg.common.allowed_ipv4_subnets_cml2
   destination_address_prefix  = "*"
   resource_group_name         = data.azurerm_resource_group.cml.name

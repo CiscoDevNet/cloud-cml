@@ -213,7 +213,7 @@ function cml_configure() {
     done
 
     # Put the license and users in place
-    export CFG_APP_USER CFG_APP_PASS CFG_LICENSE_NODE CFG_LICENSE_FLAVOR CFG_LICENSE_TOKEN
+    export CFG_APP_USER CFG_APP_PASS CFG_LICENSE_NODES CFG_LICENSE_FLAVOR CFG_LICENSE_TOKEN
     HOME=/var/local/virl2 python3 /provision/license.py
 }
 
