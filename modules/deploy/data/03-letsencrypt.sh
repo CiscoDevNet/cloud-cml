@@ -67,13 +67,20 @@ ln -s /snap/bin/certbot /usr/bin/certbot
 
 # ONLY request a cert if there's not already one present!
 if ! [ -d /etc/letsencrypt/live/$CFG_HN ]; then
+    echo "### before"
+    /usr/bin/firewall-cmd --list-all
+    echo "### apply"
+    /usr/bin/firewall-cmd --reload
+    echo "### after"
+    /usr/bin/firewall-cmd --list-all
+    echo "### done"
     /usr/bin/certbot --domain $CFG_HN --noninteractive --nginx certonly
     # could copy back to the cloud storage here? According to the naming
     # scheme hostname-fullchain.pem and hostname-privkey.pem
 fi
 
 # copy the cert to the nginx configuration
-mkdir /etc/nginx/oldcerts
+mkdir -p /etc/nginx/oldcerts
 mv /etc/nginx/*.pem /etc/nginx/oldcerts/
 cp /etc/letsencrypt/live/$CFG_HN/fullchain.pem /etc/nginx/pubkey.pem
 cp /etc/letsencrypt/live/$CFG_HN/privkey.pem /etc/nginx/privkey.pem

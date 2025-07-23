@@ -86,7 +86,7 @@ resource "aws_instance" "cml_controller" {
     network_interface_id = aws_network_interface.pub_int_cml.id
     device_index         = 0
   }
-  user_data = data.cloudinit_config.cml_controller.rendered
+  user_data_base64 = data.cloudinit_config.cml_controller.rendered
 }
 
 data "aws_ami" "ubuntu" {

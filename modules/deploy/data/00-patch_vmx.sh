@@ -16,11 +16,10 @@
 
 echo "no-VMX patch..."
 (
-    cd /var/local/virl2/.local/lib/python3.12/site-packages
+    cd /var/local/virl2/.local/lib/python3.12/site-packages || exit
     patch -p1 --forward <<EOF
-diff -ru a/simple_core/libvirt/templates/qemu_node.xml b/simple_core/libvirt/templates/qemu_node.xml
---- a/simple_core/libvirt/templates/qemu_node.xml 2023-02-25 22:05:12.000000000 +0000
-+++ b/simple_core/libvirt/templates/qemu_node.xml 2023-03-07 08:26:44.695350828 +0000
+--- a/simple_core/handlers/templates/qemu_node.xml
++++ b/simple_core/handlers/templates/qemu_node.xml
 @@ -1,10 +1,10 @@
 -<domain type="kvm">
 +<domain type="qemu">
@@ -32,21 +31,20 @@ diff -ru a/simple_core/libvirt/templates/qemu_node.xml b/simple_core/libvirt/tem
 -    <cpu mode='host-passthrough'/>
 +    <cpu/>
      <os>
-         <type arch="x86_64" machine="pc">hvm</type>
+         <type arch="x86_64" machine="pc-i440fx-8.0">hvm</type>
          <boot dev="hd"/>
-diff -ru a/simple_drivers/low_level_driver/host_statistics.py b/simple_drivers/low_level_driver/host_statistics.py
 --- a/simple_drivers/low_level_driver/host_statistics.py
 +++ b/simple_drivers/low_level_driver/host_statistics.py
-@@ -489,7 +489,8 @@ class LLDSystemInfo:
-         # return vmx or svm
-         #
-         virtualization: str | None = self._get_cpu_info_field("Virtualization")
--        return virtualization in ("VT-x", "AMD-V")
-+        # return virtualization in ("VT-x", "AMD-V")
+@@ -420,7 +420,8 @@
+
+
+         virtualization = self._get_cpu_info_field("Virtualization") in ("VT-x", "AMD-V")
+-        return virtualization and self._get_dev_kvm() and self._get_kvm_live()
++        # return virtualization and self._get_dev_kvm() and self._get_kvm_live()
 +        return True
- 
+
      def stats(self) -> dict[str, dict[str, Any]]:
-         """This is periodically called every heartbeat from
+
 EOF
     systemctl restart virl2.target
 )

@@ -458,7 +458,7 @@ resource "aws_instance" "cml_controller" {
       device_index         = 1
     }
   }
-  user_data = data.cloudinit_config.cml_controller.rendered
+  user_data_base64 = data.cloudinit_config.cml_controller.rendered
 }
 
 resource "aws_instance" "cml_compute" {
@@ -493,7 +493,7 @@ resource "aws_instance" "cml_compute" {
     network_interface_id = aws_network_interface.cluster_int_cml_compute[count.index].id
     device_index         = 1
   }
-  user_data = data.cloudinit_config.cml_compute[count.index].rendered
+  user_data_base64 = data.cloudinit_config.cml_compute[count.index].rendered
 }
 
 data "aws_ami" "ubuntu" {

@@ -153,7 +153,7 @@ function base_setup() {
 
     # Disable bridge setup in the cloud instance (controller and computes)
     # (this is a no-op with 2.7.1 as it skips bridge creation entirely)
-    /usr/local/bin/virl2-bridge-setup.py --delete
+    (HOME=/var/local/virl2 /usr/local/bin/virl2-bridge-setup.py --delete)
     sed -i /usr/local/bin/virl2-bridge-setup.py -e '2iexit()'
     # Remove the CML specific netplan config
     find /etc/netplan/ -maxdepth 1 -type f -name '*.yaml' ! -name '50-cloud-init.yaml' -exec rm -f {} +

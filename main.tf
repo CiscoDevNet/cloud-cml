@@ -30,6 +30,8 @@ module "deploy" {
   extras                = local.extras
   azure_subscription_id = var.azure_subscription_id
   azure_tenant_id       = var.azure_tenant_id
+  aws_access_key        = var.aws_access_key
+  aws_secret_key        = var.aws_secret_key
 }
 
 provider "cml2" {
