@@ -28,15 +28,20 @@ def set_license() -> str:
     )
 
     try:
+        client.licensing.deregister()
+    except pcl.exceptions.APIError as exc:
+        print(str(exc))
+
+    try:
         client.licensing.set_product_license(flavor)
     except pcl.exceptions.APIError as exc:
-        return str(exc)
+        print(str(exc))
 
     try:
         client.licensing.register(token)
         nn = int(nodes)
         if flavor == "CML_Enterprise" and nn > 0:
-            client.licensing.update_features({regid: nn})
+            client.licensing.update_features([{"id": regid, "count": nn}])
     except pcl.exceptions.APIError as exc:
         return str(exc)
 

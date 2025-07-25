@@ -10,18 +10,17 @@ source /provision/copyfile.sh
 source /provision/vars.sh
 
 if ! is_controller; then
-    echo "not a controller, exiting"
-    return
+    echo "Not a controller, exiting"
+    exit
 fi
 
-# copy the converter wheel to the webserver dir
+# Copy the converter wheel to the webserver dir
 copyfile cml2tf-0.2.1-py3-none-any.whl /var/lib/nginx/html/client/
 
-# stabilization timer
-constants="/var/local/virl2/.local/lib/python3.8/site-packages/simple_drivers/constants.py"
-sed -i -e'/^STABILIZATION_TIME = 3$/s/3/1/' $constants
+# Stabilization timer
+sed -i -e'/^STABILIZATION_TIME=3$/s/3/0.1/' /etc/default/virl2
 
-# script to create users and resource limits
+# Script to create users and resource limits
 cat >/provision/users.py <<EOF
 #!/usr/bin/env python3
 

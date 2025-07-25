@@ -89,7 +89,7 @@ locals {
       "from_port" : 1122,
       "to_port" : 1122
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets_cml2,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -100,7 +100,7 @@ locals {
       "from_port" : 22,
       "to_port" : 22
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets_mgmt,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -111,7 +111,7 @@ locals {
       "from_port" : 9090,
       "to_port" : 9090
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets_mgmt,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -122,7 +122,7 @@ locals {
       "from_port" : 80,
       "to_port" : 80
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets_cml2,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -133,7 +133,7 @@ locals {
       "from_port" : 443,
       "to_port" : 443
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets_cml2,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -147,7 +147,7 @@ locals {
       "from_port" : 2000,
       "to_port" : 7999
       "protocol" : "tcp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets_cml2,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -158,7 +158,7 @@ locals {
       "from_port" : 2000,
       "to_port" : 7999
       "protocol" : "udp",
-      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets,
+      "cidr_blocks" : var.options.cfg.common.allowed_ipv4_subnets_cml2,
       "ipv6_cidr_blocks" : [],
       "prefix_list_ids" : [],
       "security_groups" : [],
@@ -458,7 +458,7 @@ resource "aws_instance" "cml_controller" {
       device_index         = 1
     }
   }
-  user_data = data.cloudinit_config.cml_controller.rendered
+  user_data_base64 = data.cloudinit_config.cml_controller.rendered
 }
 
 resource "aws_instance" "cml_compute" {
@@ -493,7 +493,7 @@ resource "aws_instance" "cml_compute" {
     network_interface_id = aws_network_interface.cluster_int_cml_compute[count.index].id
     device_index         = 1
   }
-  user_data = data.cloudinit_config.cml_compute[count.index].rendered
+  user_data_base64 = data.cloudinit_config.cml_compute[count.index].rendered
 }
 
 data "aws_ami" "ubuntu" {

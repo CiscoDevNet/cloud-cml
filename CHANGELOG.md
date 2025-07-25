@@ -2,9 +2,38 @@
 
 Lists the changes for the tool releases.
 
+## Version 2.9.0
+
+**Breaking change**
+With this release, the `cfg.common.allowed_ipv4_subnets` has been split into
+two variables:
+
+1. `cfg.common.allowed_ipv4_subnets.mgmt` which allows access to management
+   ports tcp/22 (SSH) and tcp/9090 (Cockpit)
+2. `cfg.common.allowed_ipv4_subnets.cml2` which allows access to the CML2
+   application on tcp/80, tcp/443 and tcp/1122. This gets also applied to
+   the PATty port range, if PATty is enabled
+
+The default for both is `["0.0.0.0/0"]` (e.g. "any"). However, it is advisable
+(and maybe even enforced by your policy) to restrict management access to a
+specific subnet or a list of subnets.
+
+- fix AWS 24.04 noble image name for the AWS mini variant (closes #32)
+- fix certificate installation for 2.8 and newer in `03-letsencrypt.sh`
+- mandate CML TF provider 0.8.0 or newer
+- make licensing a bit more robust (`license.py`)
+- additional code to install Docker related dependencies (for 2.9)
+- change stabilization timer code location to match 2.8 and newer in
+  `04-customize.sh`
+- updated `config.yml` to include newest reference platform node definitions
+  and images. Some are commented -- need to adapt before deploying to match
+  what is actually needed
+- updated and reformatted documentation
+
 ## Version 2.8.0
 
-- using "aws\_" and "azure\_" prefixes to provide tokens and IDs in the environment (see `.envrc.example`)
+- using "aws\_" and "azure\_" prefixes to provide tokens and IDs in the
+  environment (see `.envrc.example`)
 - adapt tooling to work with 2.8.0 (move base OS from 20.04 to 24.04)
 - allow to use the `allowed_ipv4_subnets` also for Azure
 - improve network manager handling while provisioning
@@ -18,7 +47,9 @@ Lists the changes for the tool releases.
 - change elastic IP allocation for AWS from dynamic to static to make it work
   again
 - this is the last release to support CML 2.7 and before
-- changed the versioning to match the CML version so that it's easier to find the proper version / release of cloud-cml which works with the CML version to be used
+- changed the versioning to match the CML version so that it's easier to find
+  the proper version / release of cloud-cml which works with the CML version to be
+  used
 
 ## Version 0.3.0
 
@@ -26,20 +57,37 @@ Lists the changes for the tool releases.
   - manage and use a non-default VPC
   - optionally allow to use an already existing VPC and gateway
   - allow to enable EBS encryption (fixes #8)
-  - a `cluster` section has been added to the config file.  Some keywords have changed (`hostname` -> `controller_hostname`).  See also a new "Cluster" section in the [AWS documentation](documentation/AWS.md)
+  - a `cluster` section has been added to the config file. Some keywords have
+    changed (`hostname` -> `controller_hostname`). See also a new "Cluster"
+    section in the [AWS documentation](documentation/AWS.md)
 - introduce secret managers for storing secrets.
   - supported are dummy (use raw_secrets, as before), Conjur and Vault
   - also support randomly generated secrets
   - by default, the dummy module with random secrets is configured
   - the license token secret needs to be configured regardless
-- use the CML .pkg software distribution file instead of multiple .deb packages (this is a breaking change -- you need to change the configuration and upload the .pkg to cloud storage instead of the .deb. `deb` -> `software`.
-- the PaTTY customization script has been removed.  PaTTY is included in the .pkg. Its installation and configuration is now controlled by a new keyword `enable_patty` in the `common` section of the config.
+- use the CML .pkg software distribution file instead of multiple .deb packages
+  (this is a breaking change -- you need to change the configuration and upload
+  the .pkg to cloud storage instead of the .deb. `deb` -> `software`.
+- the PaTTY customization script has been removed. PaTTY is included in the
+  .pkg. Its installation and configuration is now controlled by a new keyword
+  `enable_patty` in the `common` section of the config.
   > [!NOTE]
-  > Poll time is hard-coded to 5 seconds in the `cml.sh` script.  If a longer poll time and/or additional options like console and VNC access are needed then this needs to be changed manually in the script.
-- add a common script file which has currently a function to determine whether the instance is a controller or not.  This makes it easier to install only controller relevant elements and omit them on computes (usable within the main `cml.sh` file as well as in the customization scripts).
-- explicitly disable bridge0 and also disable the virl2-bridge-setup.py script by inserting `exit()` as the 2nd line.  This will ensure that service restarts will not try to re-create the bridge0 interface. This will be obsolete / a no-op with 2.7.1 which includes a "skip bridge creation" flag.
-- each instance will be rebooted at the end of cloud-init to come up with newly installed software / kernel and in a clean state.
-- add configuration option `cfg.aws.vpc_id` and `cfg.aws.gw_id` to specify the VPC and gateway ID that should be used. If left empty, then a custom VPC ID will be created (fixes #9)
+  > Poll time is hard-coded to 5 seconds in the `cml.sh` script. If a longer
+  > poll time and/or additional options like console and VNC access are needed
+  > then this needs to be changed manually in the script.
+- add a common script file which has currently a function to determine whether
+  the instance is a controller or not. This makes it easier to install only
+  controller relevant elements and omit them on computes (usable within the main
+  `cml.sh` file as well as in the customization scripts).
+- explicitly disable bridge0 and also disable the virl2-bridge-setup.py script
+  by inserting `exit()` as the 2nd line. This will ensure that service restarts
+  will not try to re-create the bridge0 interface. This will be obsolete / a no-op
+  with 2.7.1 which includes a "skip bridge creation" flag.
+- each instance will be rebooted at the end of cloud-init to come up with newly
+  installed software / kernel and in a clean state.
+- add configuration option `cfg.aws.vpc_id` and `cfg.aws.gw_id` to specify the
+  VPC and gateway ID that should be used. If left empty, then a custom VPC ID will
+  be created (fixes #9)
 
 ## Version 0.2.1
 
@@ -49,7 +97,8 @@ Lists the changes for the tool releases.
 - fixed image paths for the AWS documentation
 - mentioned the necessary "prepare" step in the overall README.md
 - fix copying from cloud-storage to instance storage
-- address 16KB cloud-init limitation in AWS (not entirely removed but pushed out farther)
+- address 16KB cloud-init limitation in AWS (not entirely removed but pushed out
+  farther)
 
 ## Version 0.2.0
 
@@ -63,7 +112,8 @@ Lists the changes for the tool releases.
 - improved upload tool
   - better error handling in case no images are available
   - modified help text
-- completely reworked the AWS policy creation section to provide step-by-step instructions to accurately describe the policy creation process
+- completely reworked the AWS policy creation section to provide step-by-step
+  instructions to accurately describe the policy creation process
 - added the current ref-plat images to the `config.yml` file
 - provided the current .pkg file name to the `config.yml` file
 
