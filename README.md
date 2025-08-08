@@ -239,6 +239,50 @@ See the documentation directory for cloud specific instructions:
 - [Amazon Web Services (AWS)](documentation/AWS.md)
 - [Microsoft Azure](documentation/Azure.md)
 
+### Starting an instance
+
+Starting an instance is done via `terraform plan` and `terraform apply`. The
+instance will be deployed and fully configured based on the provided
+configuration. Terraform will wait until CML is up and running, this will take
+approximately 5-10 minutes and depends a bit on the flavor used and on the
+amount and size of images that need to be copied from storage into the VM.
+
+At the end, the Terraform output shows the relevant information about the
+instance:
+
+- The URL to access it
+- The public IP address
+- The CML software version running
+- The command to automatically remove the license from the instance prior to
+  destroying it (see below).
+
+### Destroying an instance
+
+Before destroying an instance using `terraform destroy` it is important to
+remove the CML license either by using the provided script or by unregistering
+the instance (UI → Tools → Licensing → Actions → Deregister). Otherwise, the
+license is not freed up on the Smart Licensing servers and subsequent
+deployments might not succeed due to insufficient licenses available in the
+smart account.
+
+To remove the license using automation, a script is provided in
+`/provision/del.sh`. The output from the deployment can be used, it looks like
+this:
+
+```plain
+ssh -p1122 -i ~/.ssh/your_privkey_here sysadmin@IP_ADDRESS_OF_CONTROLLER /provision/del.sh
+```
+
+This requires all labs to be stopped (no running VMs allowed) prior to removing
+the license. It will only work as long as the provisioned usernames and
+passwords have not changed between deployment and destruction of the instance.
+
+> [!NOTE]
+> If your SSH key name is not a standard one (e.g. id_rsa, id_dsa, ...) then you
+> will need to specify the key name with the `-i` option as shown above. You can
+> tell from seeing `Permission denied (publickey).` when trying to log into the
+> CML instance or when removing the licensing using the above `del.sh` command.
+
 ## Customization
 
 There's two Terraform variables which can be defined / set to further customize
