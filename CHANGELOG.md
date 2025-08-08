@@ -2,6 +2,10 @@
 
 Lists the changes for the tool releases.
 
+## Unreleased
+
+- Document ssh key name requirement for `del.sh` (closes #36)
+
 ## Version 2.9.0
 
 **Breaking change**

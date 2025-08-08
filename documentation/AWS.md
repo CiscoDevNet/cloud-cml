@@ -739,43 +739,6 @@ When all requirements are met, an instance can be deployed using Terraform.
 
 All configurations and variables relate to the relevant sections defined above.
 
-### Starting an instance
-
-Starting an instance is done via `terraform plan` and `terraform apply`. The
-instance will be deployed and fully configured based on the provided
-configuration. Terraform will wait until CML is up and running, this will take
-approximately 5-10 minutes and depends a bit on the flavor used.
-
-At the end, the Terraform output shows the relevant information about the
-instance:
-
-- The URL to access it
-- The public IP address
-- The CML software version running
-- The command to automatically remove the license from the instance prior to
-  destroying it (see below).
-
-### Destroying an instance
-
-Before destroying an instance using `terraform destroy` it is important to
-remove the CML license either by using the provided script or by unregistering
-the instance (UI → Tools → Licensing → Actions → Deregister). Otherwise, the
-license is not freed up on the Smart Licensing servers and subsequent
-deployments might not succeed due to insufficient licenses available in the
-smart account.
-
-To remove the license using automation, a script is provided in
-`/provision/del.sh`. The output from the deployment can be used, it looks like
-this:
-
-```plain
-ssh -p1122 sysadmin@IP_ADDRESS_OF_CONTROLLER /provision/del.sh
-```
-
-This requires all labs to be stopped (no running VMs allowed) prior to removing
-the license. It will only work as long as the provisioned usernames and
-passwords have not changed between deployment and destruction of the instance.
-
 ## VPC support
 
 With 0.3.0, the tooling always adds a custom VPC and doesn't use the default VPC
