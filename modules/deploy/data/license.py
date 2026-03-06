@@ -24,7 +24,8 @@ def set_license() -> str:
 
     regid = "regid.2019-10.com.cisco.CML_NODE_COUNT,1.0_2607650b-6ca8-46d5-81e5-e6688b7383c4"
     client = pcl.ClientLibrary(
-        "localhost", username=admin_user, password=admin_pass, ssl_verify=False
+        "localhost", username=admin_user, password=admin_pass, ssl_verify=False,
+        client_type="cloud_cml"
     )
 
     try:
