@@ -10,7 +10,7 @@ import sys
 from time import sleep
 
 import virl2_client as pcl
-
+from virl2_client.virl2_client import Version
 
 def set_license() -> str:
     nodes = os.getenv("CFG_LICENSE_NODES") or 0
@@ -23,10 +23,23 @@ def set_license() -> str:
         return ""
 
     regid = "regid.2019-10.com.cisco.CML_NODE_COUNT,1.0_2607650b-6ca8-46d5-81e5-e6688b7383c4"
-    client = pcl.ClientLibrary(
-        "localhost", username=admin_user, password=admin_pass, ssl_verify=False,
-        client_type="cloud_cml"
-    )
+
+    version = getattr(pcl.ClientLibrary, "VERSION", None)
+    if version is not None and version >= Version("2.9.0"):
+        client = pcl.ClientLibrary(
+            "localhost",
+            username=admin_user,
+            password=admin_pass,
+            ssl_verify=False,
+            client_type="CloudCml"
+        )
+    else:
+        client = pcl.ClientLibrary(
+            "localhost",
+            username=admin_user,
+            password=admin_pass,
+            ssl_verify=False,
+        )
 
     try:
         client.licensing.deregister()
