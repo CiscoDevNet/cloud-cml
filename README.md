@@ -1,6 +1,6 @@
 # README
 
-Version 2.9.0, September 15 2025
+Version 2.10.0, October 8 2026
 
 CML instances can run on Azure and AWS cloud infrastructure. This repository
 provides automation tooling using Terraform to deploy and manage CML in the
@@ -15,6 +15,11 @@ forked and adapted to specific customer requirements and environments.
 ## ⚠️ Important: Read this
 
 ### Upgrading
+
+When upgrading this deployment tooling, merge the current [`config.yml`](config.yml)
+into your configuration. In particular, versions that support AWS nested
+virtualization require `aws.nested_virtualization` to be set to `true` or
+`false`; set it to `false` for existing bare-metal AWS configurations.
 
 Upgrading a cloud instance is **not recommended** and/or **does not work**. A
 patch level upgrade _might_ work fine but a release level upgrade will likely
@@ -63,6 +68,49 @@ repository](https://github.com/CiscoDevNet/cloud-cml/issues).
 > [!IMPORTANT]
 > Read the section below about [cloud provider
 > selection](#important-cloud-provider-selection) (prepare script).
+
+## Virtualization requirements (updated)
+
+Nested virtualization with VM flavors was already possible on Azure. AWS still
+required bare metal instances until February 2026 when they [announced](https://aws.amazon.com/about-aws/whats-new/2026/02/amazon-ec2-nested-virtualization-on-virtual/) nested virtualization
+support for selected instance types/flavors. We've added a flag in the config
+file to request nested virtualization. Ensure to only set this to `true` when
+not requesting a bare metal instance. It will fail otherwise.
+
+If you have `awscli` installed, then this might be useful to query for instance
+types which support nested virtualization:
+
+```bash
+aws ec2 describe-instance-types --region "us-east-1" \
+  --filters Name=processor-info.supported-features,Values=nested-virtualization \
+  --query 'InstanceTypes[].{type:InstanceType,vcpus:VCpuInfo.DefaultVCpus,memoryMiB:MemoryInfo.SizeInMiB}' \
+  --output json | jq -r '.[].type | split(".")[0]' | sort -u
+```
+
+Replace the region with the region you operate in. When writing this, the following
+flavors were available that supported nested virtualization:
+
+- c7i, c7i-flex
+- c8i, c8id, c8i-flex
+- i7i, i7ie
+- m7i, m7i-flex
+- m8i, m8id, m8i-flex
+- r7i, r7iz
+- r8i, r8id, r8i-flex
+- x8i
+
+> [!NOTE]
+> if you omit the `| jq ...` you can also see the exact flavors and the
+> memory and CPU they provide
+
+## Deployment process and time
+
+The tool deploys the AWS instance, installs and configures the software as part
+of the process. It will wait until the API is available on the instance.
+However, it will do a final reboot of the VM at the end of the configuration
+script. So, you will see the tool return credentials, addresses and deployment
+information. Give it a couple more minutes before you access it until that
+final reboot has completed.
 
 ## General requirements
 
@@ -234,11 +282,11 @@ below on Ubuntu Linux.
 
 ```bash
 $ terraform version
-Terraform v1.10.4
+Terraform v1.16.5
 on linux_amd64
-+ provider registry.terraform.io/ciscodevnet/cml2 v0.8.1
-+ provider registry.terraform.io/hashicorp/aws v5.83.0
-+ provider registry.terraform.io/hashicorp/cloudinit v2.3.5
++ provider registry.terraform.io/ciscodevnet/cml2 v0.9.1
++ provider registry.terraform.io/hashicorp/aws v6.68.0
++ provider registry.terraform.io/hashicorp/cloudinit v2.4.1
 + provider registry.terraform.io/hashicorp/random v3.6.1
 $
 ```
@@ -312,7 +360,7 @@ the behavior of the tool chain:
 - `cfg_extra_vars`: This variable defines the name of a file with additional
   variable definitions. The default is "none".
 
-Here's an example of an `.envrc` file to set environment variable. Note the last
+Here's an example of an `.envrc` file to set environment variable. Note the last
 two lines which define the configuration file to use and the extra shell file
 which defines additional environment variables.
 
@@ -340,11 +388,25 @@ CFG_EMAIL="noone@acme.com"
 In this example, four additional variables are defined which can be used in
 customization scripts during deployment to provide data (usernames, passwords,
 ...) for specific services like configuring DNS. See the
-`03-letsencrypt.sh` file which installs a valid certificate into CML, using
+`03-letsencrypt.sh` file which installs a valid certificate into CML, using
 LetsEncrypt and DynDNS for domain name services.
 
 See the AWS specific document for additional information how to define variables
 in the environment using tools like `direnv` or `mise`.
+
+### Access control
+
+There are two different "firewall" / access control / ACLs lists that are applied
+inbound during deployment:
+
+- `allowed_ipv4_subnets_mgmt` which defines a list of prefixes who can access the
+  management services like tcp/9090 and tcp/22
+- `allowed_ipv4_subnets_cml2` which defines access to tcp/80, tcp/443 and tcp/1122
+
+The reason for this differentiation is corporate policy. You might be totally
+fine to set both to `[ "0.0.0.0/0" ]`. However, some corporate policy doesn't
+allow broad access to standard service ports like SSH and Cockpit. Splitting up
+access by providing two different lists addresses this constraint.
 
 ## Additional customization scripts
 
@@ -380,7 +442,7 @@ has a much higher limit (unknown what the limit actually is, if any).
 All scripts are copied as they are including all comments which will require
 even more space.
 
-Cloud-cml currently uses the cloud-init Terraform provider which allows
+Cloud-CML currently uses the cloud-init Terraform provider which allows
 compressed storage of this data. This allows to store more scripts and
 configuration due to the compression. The 16KB limit is still in place for the
 compressed data, though.

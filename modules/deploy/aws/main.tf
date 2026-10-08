@@ -431,7 +431,15 @@ resource "aws_instance" "cml_controller" {
   key_name             = var.options.cfg.common.key_name
   tags                 = { Name = "CML-controller-${var.options.rand_id}" }
   ebs_optimized        = "true"
-  depends_on           = [aws_route_table_association.public_subnet]
+
+  dynamic "cpu_options" {
+    for_each = var.options.cfg.aws.nested_virtualization ? [1] : []
+    content {
+      nested_virtualization = "enabled"
+    }
+  }
+
+  depends_on = [aws_route_table_association.public_subnet]
   dynamic "instance_market_options" {
     for_each = var.options.cfg.aws.spot_instances.use_spot_for_controller ? [1] : []
     content {
@@ -468,8 +476,16 @@ resource "aws_instance" "cml_compute" {
   key_name             = var.options.cfg.common.key_name
   tags                 = { Name = "CML-compute-${count.index + 1}-${var.options.rand_id}" }
   ebs_optimized        = "true"
-  count                = local.num_computes
-  depends_on           = [aws_instance.cml_controller, aws_route_table_association.compute_subnet_assoc]
+
+  dynamic "cpu_options" {
+    for_each = var.options.cfg.aws.nested_virtualization ? [1] : []
+    content {
+      nested_virtualization = "enabled"
+    }
+  }
+
+  count      = local.num_computes
+  depends_on = [aws_instance.cml_controller, aws_route_table_association.compute_subnet_assoc]
   dynamic "instance_market_options" {
     for_each = var.options.cfg.aws.spot_instances.use_spot_for_computes ? [1] : []
     content {

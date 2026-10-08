@@ -6,6 +6,10 @@
 
 terraform {
   required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 6.0"
+    }
     cml2 = {
       source  = "CiscoDevNet/cml2"
       version = ">=0.8.0"
