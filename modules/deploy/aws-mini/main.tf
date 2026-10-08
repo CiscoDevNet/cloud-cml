@@ -77,6 +77,14 @@ resource "aws_instance" "cml_controller" {
   key_name             = var.options.cfg.common.key_name
   tags                 = { Name = "CML-controller-${var.options.rand_id}" }
   ebs_optimized        = "true"
+
+  dynamic "cpu_options" {
+    for_each = var.options.cfg.aws.nested_virtualization ? [1] : []
+    content {
+      nested_virtualization = "enabled"
+    }
+  }
+
   root_block_device {
     volume_size = var.options.cfg.common.disk_size
     volume_type = "gp3"

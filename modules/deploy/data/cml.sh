@@ -79,36 +79,74 @@ function base_setup() {
         fi
     fi
 
-    # Copy CML distribution package from cloud storage into our instance, unpack & install
+    # Copy CML distribution package from cloud storage and extract the complete bundle.
     copyfile "${CFG_APP_SOFTWARE}" /provision/
-    tar xvf /provision/"${CFG_APP_SOFTWARE}" --wildcards -C /tmp 'cml2*_amd64.deb' 'patty*_amd64.deb' 'iol-tools*_amd64.deb'
-    systemctl stop ssh
+    rm -rf /tmp/cmlpkg
+    mkdir -p /tmp/cmlpkg
+    tar xf /provision/"${CFG_APP_SOFTWARE}" -C /tmp/cmlpkg
 
-    # Package is not installed at this point in time
-    version=$(ls /tmp/cml2_*_amd64.deb | awk -F_ '{print $2}')
-    if dpkg --compare-versions "$version" ge 2.7.0; then
-        # install i386 architecture if the version requires it
-        dpkg --add-architecture i386
+    host_arch=$(dpkg --print-architecture)
+    install_debs=()
+    cml_deb=
+    while IFS= read -r deb; do
+        deb_arch=$(dpkg-deb -f "$deb" Architecture)
+        if [ "$deb_arch" = "$host_arch" ] || [ "$deb_arch" = all ]; then
+            install_debs+=("$deb")
+            if [ "$(dpkg-deb -f "$deb" Package)" = cml2 ]; then
+                cml_deb="$deb"
+            fi
+        fi
+    done < <(find /tmp/cmlpkg -type f -name '*.deb' -print | sort)
+
+    if [ -z "$cml_deb" ] || [ ${#install_debs[@]} -eq 0 ]; then
+        echo "CML bundle has no cml2 or installable ${host_arch}/all packages" >&2
+        exit 1
     fi
 
-    # Add the Docker repository if on 2.9 or newer
+    # Package version comes from cml2 metadata, not its archive filename.
+    version=$(dpkg-deb -f "$cml_deb" Version)
+    echo "Detected CML version: $version"
+    # CML 2.10 does not need i386 packages; keep this for older bundles.
+    # if dpkg --compare-versions "$version" ge 2.7.0; then
+    #     dpkg --add-architecture i386
+    # fi
+
+    # Install prerequisites before package configuration; nginx-common must create
+    # nginx.conf before nginx's postinst is triggered by CML.
+    apt-get update
+    apt-get install -y ${APT_OPTS} network-manager ca-certificates curl jq python3 python3-yaml nginx-common
+    if [ ! -f /etc/nginx/nginx.conf ]; then
+        echo "nginx-common install did not create nginx.conf" >&2
+        exit 1
+    fi
+
+    # Add the Docker repository if on 2.9 or newer (retain 2.9 behavior).
     if dpkg --compare-versions "$version" ge 2.9.0; then
-        # Extract docker shim from package
-        tar xvf /provision/"${CFG_APP_SOFTWARE}" --wildcards -C /tmp 'cml-docker-shim*_amd64.deb'
-        # Add Docker's official GPG key:
-        apt-get install ca-certificates curl
         install -m 0755 -d /etc/apt/keyrings
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
         chmod a+r /etc/apt/keyrings/docker.asc
-
-        # Add the repository to Apt sources:
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
           $(. /etc/os-release && echo "$VERSION_CODENAME") stable" >/etc/apt/sources.list.d/docker.list
+        apt-get update
     fi
 
-    # Install everything
-    apt-get update
-    apt-get install -y network-manager /tmp/*.deb
+    runtime_packages=(dnsmasq-base network-manager cockpit-networkmanager cockpit-packagekit cockpit-storaged fontconfig fontconfig-config fonts-dejavu-core fonts-dejavu-mono ovmf qemu-system-x86 qemu-utils seabios swtpm swtpm-tools xfonts-base xfonts-encodings xfonts-utils)
+    if dpkg --compare-versions "$version" ge 2.9.0; then
+        runtime_packages+=(docker-buildx-plugin docker-compose-plugin)
+    fi
+    apt-get -y purge apport-core-dump-handler || true
+    systemctl stop ssh.socket ssh.service || true
+    apt-get install -y ${APT_OPTS} "${runtime_packages[@]}" "${install_debs[@]}"
+    apt-mark manual "${runtime_packages[@]}" || true
+
+    install -m 0755 -d /etc/docker
+    if [ ! -f /etc/docker/daemon.json ]; then
+        printf '%s\n' '{"storage-driver": "overlay2"}' >/etc/docker/daemon.json
+    else
+        tmp=$(mktemp)
+        jq '. + {"storage-driver": "overlay2"}' /etc/docker/daemon.json >"$tmp" && mv "$tmp" /etc/docker/daemon.json
+        rm -f "$tmp"
+    fi
 
     # Fixing NetworkManager in netplan, and interface association in virl2-base-config.yml
     /provision/interface_fix.py
@@ -149,6 +187,7 @@ function base_setup() {
     wait_for_network_manager
 
     # Clean up software .pkg / .deb packages
+    rm -rf /tmp/cmlpkg
     rm -f /provision/*.pkg /provision/*.deb /tmp/*.deb
 
     # Disable bridge setup in the cloud instance (controller and computes)
