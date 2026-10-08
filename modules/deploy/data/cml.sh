@@ -106,10 +106,10 @@ function base_setup() {
     # Package version comes from cml2 metadata, not its archive filename.
     version=$(dpkg-deb -f "$cml_deb" Version)
     echo "Detected CML version: $version"
-    if dpkg --compare-versions "$version" ge 2.7.0; then
-        # install i386 architecture if the version requires it
-        dpkg --add-architecture i386
-    fi
+    # CML 2.10 does not need i386 packages; keep this for older bundles.
+    # if dpkg --compare-versions "$version" ge 2.7.0; then
+    #     dpkg --add-architecture i386
+    # fi
 
     # Install prerequisites before package configuration; nginx-common must create
     # nginx.conf before nginx's postinst is triggered by CML.
