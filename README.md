@@ -24,15 +24,15 @@ virtualization require `aws.nested_virtualization` to be set to `true` or
 Upgrading a cloud instance is **not recommended** and/or **does not work**. A
 patch level upgrade _might_ work fine but a release level upgrade will likely
 fail. Especially when upgrading from version 2.7 or older to 2.8 or newer. In
-the best case, it will simply fail. In the worst case, you will loose your
+the best case, it will simply fail. In the worst case, you will lose your
 data.
 
 If you need to upgrade a cloud instance:
 
 - bring up a new instance
 - open up the required ports for migration to work
-- run the migration script to copy over data from your old instance to you
-  new instance
+- run the migration script to copy data from your old instance to your new
+  instance
 - de-register and retire your old instance
 - apply the now freed-up license to your new instance
 
@@ -61,7 +61,7 @@ considered like any other feature by adding them to the product roadmap. This
 is done at the discretion of the CML team.
 
 **Error reporting:** If you encounter any errors or problems that might be
-related to the code in this repository then please open an issue on the [Github
+related to the code in this repository then please open an issue on the [GitHub
 issue tracker for this
 repository](https://github.com/CiscoDevNet/cloud-cml/issues).
 
@@ -74,8 +74,8 @@ repository](https://github.com/CiscoDevNet/cloud-cml/issues).
 Nested virtualization with VM flavors was already possible on Azure. AWS still
 required bare metal instances until February 2026 when they [announced](https://aws.amazon.com/about-aws/whats-new/2026/02/amazon-ec2-nested-virtualization-on-virtual/) nested virtualization
 support for selected instance types/flavors. We've added a flag in the config
-file to request nested virtualization. Ensure to only set this to `true` when
-not requesting a bare metal instance. It will fail otherwise.
+file to request nested virtualization. Set this to `true` only when not
+requesting a bare-metal instance. It will fail otherwise.
 
 If you have `awscli` installed, then this might be useful to query for instance
 types which support nested virtualization:
@@ -87,8 +87,8 @@ aws ec2 describe-instance-types --region "us-east-1" \
   --output json | jq -r '.[].type | split(".")[0]' | sort -u
 ```
 
-Replace the region with the region you operate in. When writing this, the following
-flavors were available that supported nested virtualization:
+Replace the region with the region you operate in. At the time of writing, the
+following flavors supported nested virtualization:
 
 - c7i, c7i-flex
 - c8i, c8id, c8i-flex
@@ -100,7 +100,7 @@ flavors were available that supported nested virtualization:
 - x8i
 
 > [!NOTE]
-> if you omit the `| jq ...` you can also see the exact flavors and the
+> If you omit the `| jq ...`, you can also see the exact flavors and the
 > memory and CPU they provide
 
 ## Deployment process and time
@@ -120,7 +120,7 @@ tool chain should be used.
 
 Furthermore, the user needs to have access to the cloud service. E.g.
 credentials and permissions are needed to create and modify the required
-resources. Required resources are
+resources. Required resources include:
 
 - service accounts
 - storage services
@@ -141,7 +141,7 @@ need to be done once. Those are
 
 - cloning of the repository
 - installation of software (Terraform, cloud provider CLI tooling)
-- creating and configuring of a service account, including the creation of
+- creating and configuring a service account, including the creation of
   associated access credentials
 - creating the storage resources and uploading images and software into it
 - creation of an SSH key pair and making the public key available to the cloud
@@ -165,7 +165,7 @@ The first step is unfortunately required, since it is impossible to dynamically
 select different cloud configurations within the same Terraform HCL
 configuration. See [this SO
 link](https://stackoverflow.com/questions/70428374/how-to-make-the-provider-configuration-optional-and-based-on-the-condition-in-te)
-for more some context and details.
+for more context and details.
 
 The default "out-of-the-box" configuration is AWS, so if you want to run on
 Azure, don't forget to run the prepare script.
@@ -179,7 +179,7 @@ CML cloud supports these storage methods for the required platform and
 application secrets:
 
 - Raw secrets in the configuration file (as supported with previous versions)
-- Random secrets by not specifiying any secrets
+- Random secrets by not specifying any secrets
 - [Hashicorp Vault](https://www.vaultproject.io/)
 - [CyberArk Conjur](https://www.conjur.org/)
 
@@ -233,7 +233,7 @@ following secrets:
 - Cluster secret when clustering is enabled
 
 Regardless of the secret manager in use or whether you use random passwords or
-not: You **must** provide a valid Smart Licensing token for the sytem to work,
+not: You **must** provide a valid Smart Licensing token for the system to work,
 though.
 
 ##### CyberArk Conjur installation
@@ -292,7 +292,7 @@ $
 ```
 
 It is assumed that the CML cloud repository was cloned to the computer where
-Terraform was installed. The following command are all executed within the
+Terraform was installed. The following commands are all executed within the
 directory that has the cloned repositories. In particular, this `README.md`, the
 `main.tf` and the `config.yml` files, amongst other files.
 
@@ -308,11 +308,16 @@ See the documentation directory for cloud specific instructions:
 
 ### Starting an instance
 
-Starting an instance is done via `terraform plan` and `terraform apply`. The
-instance will be deployed and fully configured based on the provided
-configuration. Terraform will wait until CML is up and running, this will take
-approximately 5-10 minutes and depends a bit on the flavor used and on the
-amount and size of images that need to be copied from storage into the VM.
+Start an instance with `terraform plan` and `terraform apply`. The instance will
+be deployed and fully configured based on the provided configuration. Terraform
+will wait until CML is up and running. This takes approximately 5–10 minutes and
+depends on the selected flavor and the amount and size of images copied from
+storage into the VM.
+
+> [!NOTE]
+> It's advisable to only copy the needed reference platform images from the
+> storage container into the CML host. This can speed up the bring-up time
+> significantly. Simply comment out the unneeded images in `config.yml`.
 
 At the end, the Terraform output shows the relevant information about the
 instance:
@@ -399,14 +404,14 @@ in the environment using tools like `direnv` or `mise`.
 There are two different "firewall" / access control / ACLs lists that are applied
 inbound during deployment:
 
-- `allowed_ipv4_subnets_mgmt` which defines a list of prefixes who can access the
-  management services like tcp/9090 and tcp/22
-- `allowed_ipv4_subnets_cml2` which defines access to tcp/80, tcp/443 and tcp/1122
+- `allowed_ipv4_subnets_mgmt` defines a list of prefixes that can access the
+  management services, such as tcp/9090 and tcp/22
+- `allowed_ipv4_subnets_cml2` allows access to tcp/80, tcp/443 and tcp/1122
 
-The reason for this differentiation is corporate policy. You might be totally
-fine to set both to `[ "0.0.0.0/0" ]`. However, some corporate policy doesn't
-allow broad access to standard service ports like SSH and Cockpit. Splitting up
-access by providing two different lists addresses this constraint.
+This separation supports corporate policy. You might be totally fine to set both
+to `[ "0.0.0.0/0" ]`. However, some corporate policies do not allow broad access
+to standard service ports such as SSH and Cockpit. Separate lists address this
+constraint.
 
 ## Additional customization scripts
 
@@ -417,13 +422,13 @@ default. They are:
 - customize additional settings, here: add users and resource pools
   (`04-customize.sh`).
 
-These additional scripts serve mostly as an inspiration for customization of the
-system to adapt to local requirements.
+These additional scripts serve as examples for local system customization.
 
 ### Requesting a cert
 
-The letsencrypt script requests a cert if there's none already present. The cert
-can then be manually copied from the host to the cloud storage with the hostname
+The letsencrypt script requests a certificate if no certificate is already
+present. The certificate can then be manually copied from the host to cloud
+storage with the hostname
 as a prefix. If the host with the same hostname is started again at a later
 point in time and the cert files exist in cloud storage, then those files are
 simply copied back to the host without requesting a new certificate. This avoids
@@ -439,8 +444,8 @@ user-data that is provided via cloud-init to the cloud host. There's a
 limitation in size for the user-data in AWS. The current limit is 16KB. Azure
 has a much higher limit (unknown what the limit actually is, if any).
 
-All scripts are copied as they are including all comments which will require
-even more space.
+All scripts and comments are copied as they are, which requires even more
+space.
 
 Cloud-CML currently uses the cloud-init Terraform provider which allows
 compressed storage of this data. This allows to store more scripts and
