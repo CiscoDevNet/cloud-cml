@@ -4,6 +4,9 @@ This document contains specific configuration steps to deploy a CML instance in
 AWS. Some sections from the top level document are repeated here with additional
 detail regarding AWS.
 
+For the AWS provider v6 ENI deprecation and the remaining cluster-interface
+migration work, see [AWS Provider v6 ENI Migration](AWS-provider-v6-eni-migration.md).
+
 > [!IMPORTANT]
 > The repository includes an alternative deployment method for AWS (aws-mini)
 > which does not create any network resources. It therefore relies on these

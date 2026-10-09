@@ -90,9 +90,8 @@ resource "aws_instance" "cml_controller" {
     volume_type = "gp3"
     encrypted   = var.options.cfg.aws.enable_ebs_encryption
   }
-  network_interface {
+  primary_network_interface {
     network_interface_id = aws_network_interface.pub_int_cml.id
-    device_index         = 0
   }
   user_data_base64 = data.cloudinit_config.cml_controller.rendered
 }
