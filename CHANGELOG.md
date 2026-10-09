@@ -2,10 +2,16 @@
 
 Lists the changes for the tool releases.
 
-## Unreleased
+## Version 2.10
 
 - Document ssh key name requirement for `del.sh` (closes #36)
 - added comment about upgrading a cloud instance to the README
+- support CML 2.10 provisioning, including AWS nested-virtualization instances (closes #40)
+- require AWS provider v6 for AWS nested virtualization and use its primary ENI
+  configuration
+- provide a `CloudCml` client type to PCL for proper telemetry
+- document the AWS provider-v6 migration for primary ENIs; the cluster secondary
+  ENI remains deprecated pending a documented first-boot-safe migration
 
 ## Version 2.9.0
 

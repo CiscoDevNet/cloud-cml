@@ -455,9 +455,8 @@ resource "aws_instance" "cml_controller" {
     volume_type = "gp3"
     encrypted   = var.options.cfg.aws.enable_ebs_encryption
   }
-  network_interface {
+  primary_network_interface {
     network_interface_id = aws_network_interface.pub_int_cml.id
-    device_index         = 0
   }
   dynamic "network_interface" {
     for_each = var.options.cfg.cluster.enable_cluster ? [1] : []
@@ -501,9 +500,8 @@ resource "aws_instance" "cml_compute" {
     volume_type = "gp3"
     encrypted   = var.options.cfg.aws.enable_ebs_encryption
   }
-  network_interface {
+  primary_network_interface {
     network_interface_id = aws_network_interface.nat_int_cml_compute[count.index].id
-    device_index         = 0
   }
   network_interface {
     network_interface_id = aws_network_interface.cluster_int_cml_compute[count.index].id
