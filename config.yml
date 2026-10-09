@@ -173,49 +173,61 @@ refplat:
     - cat8000v
     - cat9000v-q200
     - cat9000v-uadp
-    - chrome
+    - chromium
     - csr1000v
     - desktop
+    - dnsmasq
+    - firefox
+    - frr
     - iol-xe
+    - iol-xe-serial-4eth
     - ioll2-xe
+    - net-tools
+    - nginx
     - iosv
     - iosvl2
     - iosxrv9000
-    - net-tools
-    - nginx
     - nxosv9000
     - radius
     - server
+    - snort
     - syslog
     - tacplus
     - thousandeyes-ea
     - ubuntu
+    - wireless-ap
+    - wireless-client
+    - xrd
   images:
-    - alpine-base-3-21-3
-    - alpine-desktop-3-21-3
-    - alpine-trex-3-21-3
-    - alpine-wanem-3-21-3
-    - asav-9-23-1
-    - cat8000v-17-16-01a
-    # - cat9000v-q200-17-15-03
-    # - cat9000v-uadp-17-15-03
-    - chrome-136-0-7103-113-1
+    - alpine-base-3-23-3
+    - alpine-desktop-3-23-3
+    - alpine-trex-3-23-3
+    - alpine-wanem-3-23-3
+    - asav-9-24-1
+    - cat8000v-17-18-02
+    - cat9000v-q200-17-18-02
+    - cat9000v-uadp-17-18-02
+    - chromium-154-0-8037-92-1-deb13u1
     - csr1000v-17-03-08a
-    - dnsmasq-2-9-0
-    - firefox-138-0-4-build1
-    - frr-10-2-1-r1
-    - ioll2-xe-17-16-01a
-    - iol-xe-17-16-01a
-    - iol-xe-17-16-01a-serial-4eth
-    - iosv-159-3-m10
+    - dnsmasq-2-91-1-deb13u2
+    - firefox-157-0-1-build1
+    - frr-10-6-1-r0
+    - ioll2-xe-17-18-02
+    - iol-xe-17-18-02
+    - iol-xe-serial-4eth-17-18-02
+    - iosv-159-3-m12
+    - net-tools-2-10-1-3
+    - nginx-1-31
     - iosvl2-2020
-    # - iosxrv9000-25-1-1
-    - net-tools-1-0-0
-    - nginx-3-38
-    # - nxosv9300-10-5-3-f
-    - radius-3-2-1
-    - server-tcl-16-0
-    - syslog-3-38
-    - tacplus-f4-0-4-28
-    - thousandeyes-ea-1-210-0
-    - ubuntu-24-04-20250503
+    - iosxrv9000-26-1-1
+    - nxosv9300-10-6-2-f
+    - radius-3-2-7-dfsg-1-deb13u2
+    - server-tcl-17-0
+    - snort-3-10-0-0
+    - syslog-4-8-1-5-deb13u1
+    - tacplus-f4-0-4-32
+    - thousandeyes-ea-0-103-0-agent
+    - ubuntu-24-04-20260307
+    - wireless-ap-24-04-20260409
+    - wireless-client-24-04-20260409
+    - xrd-26-1-1
