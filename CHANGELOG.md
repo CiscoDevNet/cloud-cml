@@ -4,14 +4,22 @@ Lists the changes for the tool releases.
 
 ## Version 2.10
 
-- Document ssh key name requirement for `del.sh` (closes #36)
-- added comment about upgrading a cloud instance to the README
-- support CML 2.10 provisioning, including AWS nested-virtualization instances (closes #40)
-- require AWS provider v6 for AWS nested virtualization and use its primary ENI
+- Document the SSH key-name requirement for `del.sh` (closes #36)
+- Add upgrade guidance to the README
+- Support CML 2.10 provisioning, including AWS instances with nested
+  virtualization (closes #40)
+- Require AWS provider v6 for AWS nested virtualization and use its primary ENI
   configuration
-- provide a `CloudCml` client type to PCL for proper telemetry
-- document the AWS provider-v6 migration for primary ENIs; the cluster secondary
+- Provide a `CloudCml` client type to PCL for proper telemetry
+- Document the AWS provider v6 migration for primary ENIs; the cluster secondary
   ENI remains deprecated pending a documented first-boot-safe migration
+- Synchronize the reference-platform list with the following ISOs. These lists
+  may become outdated.
+  - Base ISO `refplat-20260409-fcs.iso`
+  - Browser containers `refplat-20261009-browser.iso`
+  - Service containers `refplat-20261009-services.iso`
+    Container ISOs are available at <https://github.com/CiscoLearning/cml-docker-containers/releases>
+- Documentation cleanup
 
 ## Version 2.9.0
 
@@ -46,21 +54,20 @@ specific subnet or a list of subnets.
 - using "aws\_" and "azure\_" prefixes to provide tokens and IDs in the
   environment (see `.envrc.example`)
 - adapt tooling to work with 2.8.0 (move base OS from 20.04 to 24.04)
-- allow to use the `allowed_ipv4_subnets` also for Azure
+- allow use of `allowed_ipv4_subnets` for Azure
 - improve network manager handling while provisioning
 - licensing now uses the PCL instead of curl and bash
 - documentation improvements and fixes
 
 ## Version 2.7.2
 
-- added the AWS mini variant which does not manage any network resources, the
-  subnet and security group ID
+- added the AWS mini variant, which does not manage network resources, the
+  subnet, or security-group IDs
 - change elastic IP allocation for AWS from dynamic to static to make it work
   again
 - this is the last release to support CML 2.7 and before
-- changed the versioning to match the CML version so that it's easier to find
-  the proper version / release of cloud-cml which works with the CML version to be
-  used
+- changed versioning to match the CML version, so it is easier to find the
+  cloud-cml release that works with the selected CML version
 
 ## Version 0.3.0
 
